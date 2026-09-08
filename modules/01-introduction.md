@@ -241,6 +241,120 @@ This single command demonstrates the entire pull → create → run lifecycle.
 
 ---
 
+## 9. Installing Docker (CLI & Desktop)
+
+You need Docker installed to run the examples below. Pick your platform:
+
+| Platform | What to install | Download link |
+|----------|-----------------|---------------|
+| Windows | Docker Desktop (includes CLI + Compose + GUI) | https://docs.docker.com/desktop/install/windows-install/ |
+| macOS | Docker Desktop | https://docs.docker.com/desktop/install/mac-install/ |
+| Linux (desktop) | Docker Desktop | https://docs.docker.com/desktop/install/linux/ |
+| Linux (server, CLI only) | Docker Engine + CLI | https://docs.docker.com/engine/install/ |
+
+**Docker Desktop (Windows / macOS) — quick steps**
+1. Download the installer from the link above.
+2. Run it. On **Windows**, enable the **WSL 2** backend when prompted (recommended).
+3. Launch Docker Desktop and wait for the whale icon to show "running".
+4. Verify in a terminal:
+   ```bash
+   docker --version
+   docker compose version
+   docker run hello-world
+   ```
+
+**Docker Engine / CLI only (Linux server)**
+```bash
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo usermod -aG docker $USER   # run docker without sudo (log out/in after)
+```
+Official install docs: https://docs.docker.com/engine/install/
+
+> **Docker registry (Docker Hub):** https://hub.docker.com — the default public registry where images like `python`, `redis`, and `nginx` live. Browse the official images used in this course: [python](https://hub.docker.com/_/python), [redis](https://hub.docker.com/_/redis), [nginx](https://hub.docker.com/_/nginx). Create a free account to push your own images (covered in [Module 09](09-registry.md)).
+
+---
+
+## 10. A complete, downloadable example (Dockerfile + Compose)
+
+A ready-to-run mini app lives in **[`examples/module-01/`](examples/module-01/)**. It's a tiny Python (Flask) web page that counts visits using Redis — enough to show both a **Dockerfile** (build one image) and a **Compose file** (run multiple containers together).
+
+**Download / get the files** — either clone the whole course repo:
+```bash
+git clone https://github.com/PawanITC/Docker_Demo.git
+cd Docker_Demo/modules/examples/module-01
+```
+…or grab the individual files from [`modules/examples/module-01/`](examples/module-01/): `app.py`, `requirements.txt`, `Dockerfile`, `docker-compose.yml`, `.dockerignore`.
+
+### The Dockerfile (with inline explanation)
+
+```dockerfile
+# Base image: official, small, version-pinned Python.
+FROM python:3.12-slim
+
+# Everything below runs inside /app.
+WORKDIR /app
+
+# Copy the dependency list FIRST so the pip layer is cached when only code changes.
+COPY requirements.txt .
+
+# Install dependencies at build time; --no-cache-dir keeps the image small.
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Now copy the rest of the source code.
+COPY . .
+
+# Document the port the app listens on.
+EXPOSE 5000
+
+# Default command when a container starts.
+CMD ["python", "app.py"]
+```
+
+### The Compose file (with inline explanation)
+
+```yaml
+services:
+  web:                       # our Python web app
+    build: .                 # build the image from the Dockerfile in this folder
+    ports:
+      - "5000:5000"          # host port 5000 -> container port 5000
+    environment:
+      REDIS_HOST: redis      # where the app finds Redis (the service name below)
+    depends_on:
+      - redis                # start redis before web
+
+  redis:                     # counter storage
+    image: "redis:7-alpine"  # official image, no build needed
+    volumes:
+      - redisdata:/data      # persist data across restarts
+
+volumes:
+  redisdata:                 # Docker-managed named volume
+```
+
+### Practical 1.3 — Build and run the example
+
+**Goal:** Bring the whole app up with one command.
+
+**Commands:**
+```bash
+# From inside modules/examples/module-01/
+docker compose up
+```
+Then open http://localhost:5000 and refresh a few times — the counter goes up.
+
+**Stop and clean up:**
+```bash
+docker compose down          # stop & remove containers + network
+docker compose down -v       # also delete the redisdata volume
+```
+
+**What just happened?**
+`docker compose up` read `docker-compose.yml` and: (1) **built** the `web` image from the `Dockerfile`, (2) **pulled** `redis:7-alpine`, (3) created a private **network** so `web` reaches `redis` by name, (4) created the `redisdata` **volume**, and (5) started `redis` before `web` (`depends_on`). Each refresh calls Redis to increment the counter — proving the two containers are talking to each other. This is the entire Docker workflow (build → network → run) in one command.
+
+---
+
 ## Key takeaways
 
 - Docker packages apps into portable, lightweight containers.

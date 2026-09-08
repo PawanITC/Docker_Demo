@@ -1,0 +1,28 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# docker-compose.yml — describes the WHOLE app (web + redis) in one file.
+# Start everything with:   docker compose up
+# Stop and clean up with:  docker compose down
+# Compose automatically creates a private network so services can reach each
+# other by their service name (the "web" container talks to "redis" by hostname).
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  # ---- Service 1: our Python web app ----
+  web:
+    build: .                 # Build the image from the Dockerfile in this folder.
+    ports:
+      - "5000:5000"          # Map host port 5000 -> container port 5000.
+    environment:
+      REDIS_HOST: redis      # Tell the app where Redis is (the service name below).
+    depends_on:
+      - redis                # Start "redis" before "web".
+
+  # ---- Service 2: Redis, used to store the page-view counter ----
+  redis:
+    image: "redis:7-alpine"  # Use the official Redis image (no build needed).
+    volumes:
+      - redisdata:/data      # Persist Redis data in a named volume (survives restarts).
+
+# Named volumes are managed by Docker and outlive the containers.
+volumes:
+  redisdata:
