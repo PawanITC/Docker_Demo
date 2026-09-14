@@ -376,6 +376,56 @@
   .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease}
   .reveal.in{opacity:1;transform:none}
   @media(prefers-reduced-motion:reduce){.reveal,.tl-item{opacity:1;transform:none;transition:none}.tl-dot{transform:scale(1);transition:none}.tl-fill{transition:none}html{scroll-behavior:auto}}
+
+  /* ===== animated architecture request-flow ===== */
+  .dflow{border:1px solid var(--line);border-radius:16px;background:linear-gradient(180deg,#fbfdff,#f2f7fc);padding:16px 18px 10px;box-shadow:var(--shadow)}
+  .dflow-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+  .dflow-steps{display:flex;gap:8px;flex-wrap:wrap}
+  .dfstep{font-family:var(--mono);font-size:11.5px;font-weight:700;color:var(--muted-2);background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px 12px;cursor:pointer;transition:all .25s ease}
+  .dfstep.active{color:#fff;background:var(--blue);border-color:var(--blue);box-shadow:0 3px 10px rgba(36,150,237,.35)}
+  .dfstep.done{color:var(--blue-600);border-color:#a9d2f7;background:var(--tint)}
+  .dflow-nav{display:flex;gap:8px}
+  .dflow-nav button{font-family:var(--font);font-size:12.5px;font-weight:700;color:var(--muted);background:#fff;border:1px solid var(--line);border-radius:9px;padding:6px 13px;cursor:pointer;transition:all .16s ease}
+  .dflow-nav button:hover:not(:disabled){background:var(--ink);color:#fff;border-color:var(--ink)}
+  .dflow-nav button.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+  .dflow-nav button.primary:hover:not(:disabled){background:var(--blue-600);border-color:var(--blue-600)}
+  .dflow-nav button:disabled{opacity:.4;cursor:not-allowed}
+  .dflow-caption{font-family:var(--mono);font-size:11.5px;color:var(--muted-2);margin:2px 0 12px;min-height:16px}
+  .dflow-caption b{color:var(--blue-600);font-weight:800}
+
+  .dterm{background:var(--code-bg);border-radius:10px;overflow:hidden;border:1px solid #1b2b3f;margin-bottom:16px}
+  .dterm-bar{display:flex;align-items:center;gap:7px;padding:8px 12px;background:#0a1622;border-bottom:1px solid #1b2b3f}
+  .dterm-bar i{width:10px;height:10px;border-radius:50%;display:inline-block}
+  .dterm-bar .fname{margin-left:auto;font-family:var(--mono);font-size:11px;color:#6f8098}
+  .dterm-body{padding:12px 14px;font-family:var(--mono);font-size:12.5px;line-height:1.6}
+  .dterm-body .prompt{color:#42d17a;font-weight:700;margin-right:8px}
+  .dterm-body .cmd{color:var(--code-blue)}
+  .dterm-body .caret{display:inline-block;width:8px;height:14px;background:var(--code-blue);vertical-align:-2px;margin-left:1px;animation:dcaret 1s step-end infinite}
+  @keyframes dcaret{50%{opacity:0}}
+  .dterm-body .dout{color:#8fa8c4;white-space:pre-wrap;margin-top:8px;min-height:40px}
+
+  .dflow svg .wire{fill:none;stroke:#c7d0dc;stroke-width:2.5;stroke-linejoin:round;transition:stroke .3s ease}
+  .dflow svg .tip{fill:#c7d0dc;transition:fill .3s ease}
+  .dflow svg .wire.lit{stroke:var(--blue);stroke-dasharray:7 7;animation:dmarch 1.1s linear infinite}
+  .dflow svg .tip.lit{fill:var(--blue)}
+  @keyframes dmarch{to{stroke-dashoffset:-28}}
+  .dflow svg .node rect{fill:#fff;stroke:#d7dee8;stroke-width:1.6;transition:fill .3s ease,stroke .3s ease,filter .3s ease}
+  .dflow svg .node.lit rect{fill:var(--tint);stroke:var(--blue);filter:drop-shadow(0 3px 9px rgba(36,150,237,.30))}
+  .dflow svg .node.done rect{stroke:#a9d2f7}
+  .dflow svg .n-registry{cursor:pointer}
+  .dflow svg .n-registry:hover rect{stroke:var(--blue)}
+  .dflow svg .badge{opacity:0;font-weight:800;fill:var(--green);transition:opacity .35s ease}
+  .dflow svg .badge.lit{opacity:1}
+  .dflow svg .daemon{transform-box:fill-box;transform-origin:center}
+  .dflow.live .daemon{animation:dpulse 1.5s ease-in-out infinite}
+  @keyframes dpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+  .dflow svg .packet{fill:var(--cyan);opacity:0}
+  .dflow svg .packet.lit{opacity:1;animation:dpkt 1.1s ease-in-out infinite}
+  @keyframes dpkt{0%{transform:translateX(0)}100%{transform:translateX(128px)}}
+  @media(prefers-reduced-motion:reduce){
+    .dflow svg .wire,.dflow .daemon,.dflow svg .packet,.dterm-body .caret{animation:none!important}
+    .dflow svg .packet.lit{opacity:1}
+  }
 </style>
 </head>
 <body>
@@ -2549,40 +2599,119 @@ Kubernetes = outer loop → schedule, scale, heal
       <div class="noun reveal" style="flex-direction:column"><div class="ic">⚙</div><div><h4>Docker Engine</h4><p>The background daemon that builds and runs containers.</p></div></div>
     </div>
 
-    <!-- Architecture request-flow SVG -->
+    <!-- Architecture request-flow (animated) -->
     <div class="figure reveal">
-      <svg viewBox="0 0 760 260" role="img" aria-label="Docker architecture: the CLI calls the daemon over a REST API; the daemon manages images, containers and the registry">
-        <defs>
-          <marker id="arrow" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#2496ED"/></marker>
-          <linearGradient id="dae" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2496ED"/><stop offset="1" stop-color="#0DB7ED"/></linearGradient>
-        </defs>
-        <g font-family="Segoe UI,sans-serif">
+      <div class="dflow" id="dflow" role="group" aria-label="Step-by-step Docker request flow: use Next and Back to walk through docker build, docker run and docker compose up — showing how the CLI calls dockerd over the REST API, how dockerd hands off to containerd then runc then the Linux kernel, and how images, containers and the registry are used">
+        <div class="dflow-top">
+          <div class="dflow-steps">
+            <span class="dfstep" data-phase="0">1 · docker build</span>
+            <span class="dfstep" data-phase="1">2 · docker run</span>
+            <span class="dfstep" data-phase="2">3 · docker compose up</span>
+          </div>
+          <div class="dflow-nav">
+            <button type="button" id="dflowBack" aria-label="Previous step">◀ Back</button>
+            <button type="button" id="dflowNext" class="primary" aria-label="Next step">Next ▶</button>
+            <button type="button" id="dflowReset" aria-label="Reset animation">↻ Reset</button>
+          </div>
+        </div>
+        <div class="dflow-caption" id="dflowCaption">Click <b>Next ▶</b> to step through <b>docker build</b>, <b>docker run</b> and <b>docker compose up</b> — one stage at a time, down the full runtime chain.</div>
+
+        <!-- terminal: what you type -->
+        <div class="dterm">
+          <div class="dterm-bar"><i style="background:#FF5F56"></i><i style="background:#FFBD2E"></i><i style="background:#27C93F"></i><span class="fname">bash — your terminal</span></div>
+          <div class="dterm-body">
+            <div><span class="prompt">$</span><span class="cmd" id="dcmd"></span><span class="caret"></span></div>
+            <div class="dout" id="dout"></div>
+          </div>
+        </div>
+
+        <!-- flow diagram: CLI → dockerd → containerd → runc → kernel, plus images/registry/containers -->
+        <svg viewBox="0 0 760 352" font-family="Segoe UI,sans-serif">
+          <defs>
+            <linearGradient id="daeFlow" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2496ED"/><stop offset="1" stop-color="#0DB7ED"/></linearGradient>
+          </defs>
+
+          <!-- top readout: which transport / API the current step uses -->
+          <text x="380" y="17" text-anchor="middle" font-size="11.5" font-weight="800" fill="#2496ED" id="apiLabel"></text>
+          <text x="380" y="34" text-anchor="middle" font-size="9" fill="#8A93A0">transports — CLI↔dockerd: REST API over the unix socket · dockerd↔containerd: gRPC · containerd→runc: OCI runtime · runc→kernel: syscalls</text>
+
+          <!-- wires (drawn first, behind the boxes) -->
+          <line class="wire" id="w-cli" x1="164" y1="94" x2="296" y2="94"/>
+          <line class="wire" id="w-reg" x1="472" y1="94" x2="586" y2="94"/>
+          <polyline class="wire" id="w-img" points="340,120 340,134 94,134 94,148"/>
+          <line class="wire" id="w-cd" x1="385" y1="120" x2="385" y2="146"/>
+          <line class="wire" id="w-rc" x1="385" y1="196" x2="385" y2="222"/>
+          <line class="wire" id="w-kn" x1="385" y1="268" x2="385" y2="292"/>
+          <line class="wire" id="w-con" x1="502" y1="316" x2="556" y2="316"/>
+
+          <!-- arrow tips -->
+          <path class="tip" id="t-daemon" d="M296,94 l-9,-5 l0,10 Z"/>
+          <path class="tip" id="t-reg"    d="M586,94 l-9,-5 l0,10 Z"/>
+          <path class="tip" id="t-img"    d="M94,150 l-5,-9 l10,0 Z"/>
+          <path class="tip" id="t-cd"     d="M385,148 l-5,-9 l10,0 Z"/>
+          <path class="tip" id="t-rc"     d="M385,224 l-5,-9 l10,0 Z"/>
+          <path class="tip" id="t-kn"     d="M385,294 l-5,-9 l10,0 Z"/>
+          <path class="tip" id="t-con"    d="M556,316 l-9,-5 l0,10 Z"/>
+
+          <!-- travelling packet along CLI → dockerd -->
+          <circle class="packet" cx="164" cy="94" r="4.5"/>
+
           <!-- CLI -->
-          <rect x="30" y="96" width="180" height="66" rx="12" fill="#0D1B2A"/>
-          <text x="120" y="126" text-anchor="middle" font-size="15" font-weight="800" fill="#a5d6ff" font-family="Consolas,monospace">$ docker CLI</text>
-          <text x="120" y="146" text-anchor="middle" font-size="11.5" fill="#8fa4bd">what you type</text>
-          <!-- arrow CLI -> daemon -->
-          <line x1="212" y1="129" x2="300" y2="129" stroke="#2496ED" stroke-width="2.5" marker-end="url(#arrow)"/>
-          <text x="256" y="118" text-anchor="middle" font-size="11" font-weight="700" fill="#2496ED">REST API</text>
-          <text x="256" y="150" text-anchor="middle" font-size="10.5" fill="#8A93A0">HTTP / unix socket</text>
-          <!-- Daemon -->
-          <rect x="302" y="90" width="200" height="78" rx="12" fill="url(#dae)"/>
-          <text x="402" y="122" text-anchor="middle" font-size="16" font-weight="800" fill="#fff">Docker Daemon</text>
-          <text x="402" y="144" text-anchor="middle" font-size="12" fill="#e6f4fc" font-family="Consolas,monospace">dockerd</text>
-          <!-- three downstream -->
-          <line x1="402" y1="170" x2="402" y2="192" stroke="#2496ED" stroke-width="2.5"/>
-          <line x1="150" y1="192" x2="654" y2="192" stroke="#2496ED" stroke-width="2.5"/>
-          <line x1="150" y1="192" x2="150" y2="210" stroke="#2496ED" stroke-width="2.5" marker-end="url(#arrow)"/>
-          <line x1="402" y1="192" x2="402" y2="210" stroke="#2496ED" stroke-width="2.5" marker-end="url(#arrow)"/>
-          <line x1="654" y1="192" x2="654" y2="210" stroke="#2496ED" stroke-width="2.5" marker-end="url(#arrow)"/>
-          <g text-anchor="middle" font-size="13" font-weight="700" fill="#0D1B2A">
-            <rect x="86"  y="214" width="128" height="38" rx="9" fill="#eaf4ff" stroke="#a9d2f7"/><text x="150" y="238">Images</text>
-            <rect x="338" y="214" width="128" height="38" rx="9" fill="#eaf4ff" stroke="#a9d2f7"/><text x="402" y="238">Containers</text>
-            <rect x="590" y="214" width="128" height="38" rx="9" fill="#eaf4ff" stroke="#a9d2f7"/><text x="654" y="238">Registry</text>
+          <rect x="24" y="70" width="140" height="48" rx="11" fill="#0D1B2A"/>
+          <text x="94" y="92" text-anchor="middle" font-size="13" font-weight="800" fill="#a5d6ff" font-family="Consolas,monospace">$ docker CLI</text>
+          <text x="94" y="108" text-anchor="middle" font-size="9.5" fill="#8fa4bd">the client</text>
+
+          <!-- dockerd (daemon) -->
+          <g class="daemon">
+            <rect x="300" y="70" width="170" height="48" rx="11" fill="url(#daeFlow)"/>
+            <text x="385" y="91" text-anchor="middle" font-size="13.5" font-weight="800" fill="#fff">Docker Daemon</text>
+            <text x="385" y="107" text-anchor="middle" font-size="10.5" fill="#e6f4fc" font-family="Consolas,monospace">dockerd</text>
           </g>
-        </g>
-      </svg>
-      <div class="figcap">The CLI never runs containers itself — it asks the daemon over a REST API.</div>
+
+          <!-- Registry (link) -->
+          <a class="node n-registry" href="https://hub.docker.com" target="_blank" rel="noopener" aria-label="Docker Hub registry — hub.docker.com">
+            <rect x="590" y="70" width="150" height="48" rx="11"/>
+            <text x="665" y="90" text-anchor="middle" font-size="12.5" font-weight="700" fill="#0D1B2A">Registry ↗</text>
+            <text x="665" y="106" text-anchor="middle" font-size="9.5" fill="#2496ED">hub.docker.com</text>
+            <text class="badge" id="badge-reg" x="665" y="62" font-size="10" text-anchor="middle" fill="#2496ED">⤓ pull image layers</text>
+          </a>
+
+          <!-- Images store -->
+          <g class="node n-images" text-anchor="middle">
+            <rect x="24" y="150" width="140" height="46" rx="10"/>
+            <text x="94" y="172" font-size="12.5" font-weight="700" fill="#0D1B2A">Images</text>
+            <text x="94" y="187" font-size="9" fill="#8A93A0">read-only layers</text>
+            <text class="badge" id="badge-img" x="94" y="142" font-size="10" text-anchor="middle">✔ myapp:1.0</text>
+          </g>
+
+          <!-- runtime chain: containerd → runc → kernel -->
+          <g class="node n-containerd" text-anchor="middle">
+            <rect x="300" y="150" width="170" height="46" rx="10"/>
+            <text x="385" y="171" font-size="12.5" font-weight="700" fill="#0D1B2A">containerd</text>
+            <text x="385" y="186" font-size="9" fill="#8A93A0">lifecycle · snapshots · pulls</text>
+          </g>
+          <g class="node n-runc" text-anchor="middle">
+            <rect x="300" y="224" width="170" height="44" rx="10"/>
+            <text x="385" y="244" font-size="12.5" font-weight="700" fill="#0D1B2A">runc</text>
+            <text x="385" y="258" font-size="9" fill="#8A93A0">OCI runtime — starts, then exits</text>
+          </g>
+          <g class="node n-kernel" text-anchor="middle">
+            <rect x="270" y="294" width="230" height="46" rx="10"/>
+            <text x="385" y="315" font-size="12.5" font-weight="700" fill="#0D1B2A">Linux Kernel</text>
+            <text x="385" y="330" font-size="9" fill="#8A93A0">namespaces · cgroups · seccomp · caps</text>
+          </g>
+
+          <!-- Containers (the running processes) -->
+          <g class="node n-containers" text-anchor="middle">
+            <rect x="558" y="294" width="180" height="46" rx="10"/>
+            <text x="648" y="315" font-size="12.5" font-weight="700" fill="#0D1B2A">Containers</text>
+            <text x="648" y="330" font-size="9" fill="#8A93A0">isolated processes</text>
+            <text class="badge" id="badge-con" x="648" y="286" font-size="9.5" text-anchor="middle">▶ container up · 8080→80</text>
+            <text class="badge" id="badge-cmp" x="648" y="286" font-size="9.5" text-anchor="middle">▶ web + redis · shared network</text>
+          </g>
+        </svg>
+      </div>
+      <div class="figcap">The CLI never runs containers itself — it sends REST API calls to <code>dockerd</code>, which pulls images from the registry (<a href="https://hub.docker.com" target="_blank" rel="noopener">hub.docker.com</a>), then hands off down the chain <code>dockerd → containerd → runc → Linux kernel</code> to start the actual processes. <code>docker compose up</code> drives the same chain once per service.</div>
     </div>
   </div>
 </section>
@@ -2765,6 +2894,140 @@ Kubernetes = outer loop → schedule, scale, heal
 
     modal.querySelectorAll('[data-close]').forEach(el=>el.addEventListener('click',close));
     document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modal.classList.contains('open'))close();});
+  })();
+
+  // architecture request-flow — click-driven, one stage at a time (no overlap)
+  (function(){
+    const root=document.getElementById('dflow');
+    if(!root) return;
+    const cmdEl=root.querySelector('#dcmd');
+    const outEl=root.querySelector('#dout');
+    const apiEl=root.querySelector('#apiLabel');
+    const capEl=root.querySelector('#dflowCaption');
+    const pills=root.querySelectorAll('.dfstep');
+    const backBtn=root.querySelector('#dflowBack');
+    const nextBtn=root.querySelector('#dflowNext');
+    const resetBtn=root.querySelector('#dflowReset');
+    const initialCap=capEl.innerHTML;
+
+    // Each step is a discrete, self-contained state — rendering a step never
+    // depends on a previous one still animating, so nothing overlaps.
+    const BUILD='docker build -t myapp:1.0 .';
+    const RUN='docker run -d -p 8080:80 myapp:1.0';
+    const UP='docker compose up -d';
+    const steps=[
+      // ---- Phase 0 · docker build ----
+      {phase:0, cmd:BUILD, api:'POST /build  (REST API over the unix socket)',
+        out:'→ docker CLI packages the build context and POSTs it to dockerd',
+        cap:'<b>docker build</b> — the CLI is only a client; it calls dockerd over the REST API.',
+        lit:['#w-cli','#t-daemon','.packet']},
+      {phase:0, cmd:BUILD, api:'dockerd → registry pull',
+        out:'→ FROM python:3.12-slim — dockerd pulls the base layers from Docker Hub',
+        cap:'dockerd needs the base image, so it <b>pulls layers from the registry</b> (hub.docker.com).',
+        lit:['#w-reg','#t-reg','.n-registry','#badge-reg']},
+      {phase:0, cmd:BUILD, api:'store image layers',
+        out:'✔ image built and stored locally as myapp:1.0',
+        cap:'The finished <b>image</b> is stored locally — read-only layers, not yet running.',
+        lit:['#w-img','#t-img','.n-images','#badge-img']},
+
+      // ---- Phase 1 · docker run (full runtime chain) ----
+      {phase:1, cmd:RUN, api:'POST /containers/create → /start  (REST API)',
+        out:'→ docker CLI asks dockerd to create and start a container',
+        cap:'<b>docker run</b> — again just a REST call to dockerd: create, then start.',
+        lit:['#w-cli','#t-daemon','.packet']},
+      {phase:1, cmd:RUN, api:'read image layers',
+        out:'→ dockerd reads the myapp:1.0 image (its layers) from the local store',
+        cap:'The daemon <b>reads the stored image</b> — those layers become the container root filesystem.',
+        lit:['#w-img','#t-img','.n-images','#badge-img']},
+      {phase:1, cmd:RUN, api:'dockerd → containerd  (gRPC)',
+        out:'→ dockerd hands the container lifecycle to containerd over gRPC',
+        cap:'dockerd does not touch the kernel itself — it delegates to <b>containerd</b> (lifecycle + snapshots).',
+        lit:['#w-cd','#t-cd','.n-containerd']},
+      {phase:1, cmd:RUN, api:'containerd → runc  (OCI runtime spec)',
+        out:'→ containerd prepares an OCI bundle (rootfs + config.json) and invokes runc',
+        cap:'containerd builds the <b>OCI bundle</b> and calls <b>runc</b>, the low-level OCI runtime.',
+        lit:['#w-rc','#t-rc','.n-runc']},
+      {phase:1, cmd:RUN, api:'runc → kernel  (syscalls)',
+        out:'→ runc calls the kernel: namespaces + cgroups + mounts + seccomp + capabilities',
+        cap:'<b>runc</b> asks the <b>Linux kernel</b> to set up the isolation, then <code>execve()</code>s your process.',
+        lit:['#w-kn','#t-kn','.n-kernel']},
+      {phase:1, cmd:RUN, api:'process running',
+        out:'✔ kernel starts PID 1 in the container → running (host:8080 → :80); runc exits',
+        cap:'The <b>container</b> is a normal Linux process in its own namespaces; runc has already exited.',
+        lit:['#w-con','#t-con','.n-containers','#badge-con']},
+
+      // ---- Phase 2 · docker compose up (same chain, once per service) ----
+      {phase:2, cmd:UP, api:'read compose.yaml → REST API per service',
+        out:'→ Compose reads compose.yaml (services: web + redis) and calls the Docker API for each',
+        cap:'<b>docker compose up</b> — Compose reads your YAML and drives dockerd, one API call per service.',
+        lit:['#w-cli','#t-daemon','.packet']},
+      {phase:2, cmd:UP, api:'dockerd → registry pull (×2)',
+        out:'→ dockerd pulls any missing images: myapp:1.0 (web) and redis:7 (redis)',
+        cap:'Missing images are <b>pulled from the registry</b> for every service that needs them.',
+        lit:['#w-reg','#t-reg','.n-registry','#badge-reg','#w-img','#t-img','.n-images','#badge-img']},
+      {phase:2, cmd:UP, api:'dockerd → containerd  (gRPC, per service)',
+        out:'→ dockerd asks containerd to create the web and redis containers',
+        cap:'The same handoff as <code>docker run</code> — <b>dockerd → containerd</b> — but repeated per service.',
+        lit:['#w-cd','#t-cd','.n-containerd']},
+      {phase:2, cmd:UP, api:'containerd → runc → kernel  (per service)',
+        out:'→ runc sets up namespaces + cgroups via the kernel for each container',
+        cap:'Each service walks the full chain <b>containerd → runc → kernel</b> independently.',
+        lit:['#w-rc','#t-rc','.n-runc','#w-kn','#t-kn','.n-kernel']},
+      {phase:2, cmd:UP, api:'services running on one network',
+        out:'✔ web + redis running on a shared Compose network — web reaches redis by name',
+        cap:'Compose puts every service on <b>one network</b>, so containers reach each other by service name.',
+        lit:['#w-con','#t-con','.n-containers','#badge-cmp']}
+    ];
+
+    const LIT=['#w-cli','#w-img','#w-con','#w-reg','#w-cd','#w-rc','#w-kn',
+               '#t-daemon','#t-img','#t-con','#t-reg','#t-cd','#t-rc','#t-kn',
+               '#badge-img','#badge-con','#badge-cmp','#badge-reg',
+               '.n-images','.n-containers','.n-registry','.n-containerd','.n-runc','.n-kernel','.packet'];
+    let cur=-1;
+
+    function clearLit(){ LIT.forEach(sel=>{const el=root.querySelector(sel); if(el) el.classList.remove('lit','done');}); }
+
+    function render(i){
+      cur=i;
+      clearLit();
+      if(i<0){
+        root.classList.remove('live');
+        cmdEl.textContent=''; outEl.textContent=''; apiEl.textContent='';
+        capEl.innerHTML=initialCap;
+        pills.forEach(p=>p.classList.remove('active','done'));
+        backBtn.disabled=true; nextBtn.disabled=false; nextBtn.textContent='Start ▶';
+        return;
+      }
+      const s=steps[i];
+      root.classList.add('live');
+      cmdEl.textContent=s.cmd;
+      apiEl.textContent=s.api;
+      capEl.innerHTML=s.cap;
+      // cumulative terminal output for the current phase only (resets when the phase switches)
+      const first=steps.findIndex(st=>st.phase===s.phase);
+      const lines=[]; for(let k=first;k<=i;k++) lines.push(steps[k].out);
+      outEl.textContent=lines.join('\n');
+      // light only this step's elements — exactly one stage active, so nothing overlaps
+      s.lit.forEach(sel=>{const el=root.querySelector(sel); if(el) el.classList.add('lit');});
+      // pills
+      pills.forEach(p=>{ const ph=+p.getAttribute('data-phase');
+        p.classList.toggle('active',ph===s.phase);
+        p.classList.toggle('done',ph<s.phase); });
+      backBtn.disabled=false;
+      nextBtn.disabled=(i>=steps.length-1);
+      nextBtn.textContent=(i>=steps.length-1)?'Done ✓':'Next ▶';
+    }
+
+    nextBtn.addEventListener('click',()=>{ if(cur<steps.length-1) render(cur+1); });
+    backBtn.addEventListener('click',()=>{ render(cur-1); });
+    resetBtn.addEventListener('click',()=>render(-1));
+    pills.forEach(p=>p.addEventListener('click',()=>{
+      const ph=+p.getAttribute('data-phase');
+      const first=steps.findIndex(s=>s.phase===ph);
+      if(first>=0) render(first);
+    }));
+
+    render(-1);
   })();
 </script>
 </body>
