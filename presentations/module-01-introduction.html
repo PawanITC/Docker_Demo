@@ -1,0 +1,2771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Module 01 — Introduction to Docker</title>
+<meta name="description" content="Build, ship, and run applications inside containers — and understand why Docker exists when VMs already did.">
+<style>
+  /* ============ Design tokens (from the source deck palette) ============ */
+  :root{
+    --blue:#2496ED;        /* Docker primary */
+    --cyan:#0DB7ED;        /* Docker cyan   */
+    --blue-600:#1877cf;
+    --ink:#0D1B2A;         /* deep navy      */
+    --ink-2:#0f2850;
+    --text:#1a1f2b;
+    --muted:#5A6472;
+    --muted-2:#8A93A0;
+    --line:#E4E8EE;
+    --tint:#E6F4FC;        /* light blue tint */
+    --tint-2:#F7F9FC;
+    --panel:#FFFFFF;
+    --bg:#F4F7FB;
+    --red:#FF7B72;
+    --amber:#FFBD2E;
+    --green:#27C93F;
+    --code-bg:#0D1B2A;
+    --code-blue:#A5D6FF;
+    --radius:16px;
+    --shadow:0 1px 2px rgba(13,27,42,.04),0 8px 24px rgba(13,27,42,.06);
+    --shadow-lg:0 24px 60px rgba(13,27,42,.14);
+    --maxw:1080px;
+    --font:'Segoe UI',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;
+    --mono:'SF Mono','Cascadia Code','JetBrains Mono',Consolas,'Courier New',monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;font-family:var(--font);color:var(--text);background:var(--bg);
+    line-height:1.65;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  }
+  a{color:var(--blue);text-decoration:none}
+  a:hover{text-decoration:underline}
+  h1,h2,h3,h4{line-height:1.15;letter-spacing:-.02em;margin:0}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+  .eyebrow{
+    font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--blue);margin-bottom:14px;
+  }
+  .lead{font-size:19px;color:var(--muted);max-width:62ch}
+
+  /* ============ Progress bar ============ */
+  #progress{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--cyan),var(--blue));z-index:100;transition:width .1s ease-out}
+
+  /* ============ Top bar ============ */
+  header.topbar{
+    position:sticky;top:0;z-index:90;background:rgba(244,247,251,.82);
+    backdrop-filter:saturate(180%) blur(12px);border-bottom:1px solid var(--line);
+  }
+  .topbar .wrap{display:flex;align-items:center;gap:16px;height:60px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:-.01em}
+  .brand .whale{width:30px;height:30px;flex:0 0 auto}
+  .brand small{color:var(--muted);font-weight:600}
+  .topnav{margin-left:auto;display:flex;gap:6px}
+  .topnav a{
+    font-size:13.5px;font-weight:600;color:var(--muted);padding:7px 12px;border-radius:9px;
+  }
+  .topnav a:hover{background:var(--tint);color:var(--blue);text-decoration:none}
+  @media(max-width:820px){.topnav{display:none}}
+
+  /* ============ Hero ============ */
+  .hero{
+    position:relative;overflow:hidden;color:#E5E7EB;
+    background:
+      radial-gradient(900px 600px at 78% 12%, rgba(36,150,237,.30), transparent 60%),
+      radial-gradient(700px 500px at 15% 90%, rgba(13,183,237,.18), transparent 55%),
+      linear-gradient(160deg,#0b1524 0%,#0D1B2A 55%,#0a1220 100%);
+  }
+  .hero .wrap{display:grid;grid-template-columns:1.25fr .9fr;gap:48px;align-items:center;padding:88px 24px 96px}
+  .hero .kicker{color:#8fd0ff;font-weight:700;letter-spacing:.18em;text-transform:uppercase;font-size:12.5px}
+  .hero h1{font-size:clamp(40px,6vw,68px);font-weight:800;margin:16px 0 20px;color:#fff}
+  .hero h1 .grad{background:linear-gradient(90deg,#7cc4ff,#38bdf8);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p.sub{font-size:19px;color:#aeb9c9;max-width:52ch}
+  .hero .chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px}
+  .chip{
+    display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;
+    padding:8px 14px;border-radius:999px;color:#dbe7f5;
+    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
+  }
+  .chip .dot{width:7px;height:7px;border-radius:50%;background:var(--cyan)}
+  .hero .source{margin-top:34px;font-size:13px;color:#7d8590}
+  .hero .source a{color:#9cc9f2}
+  .hero-art{position:relative;justify-self:center}
+  .hero-art img{
+    width:100%;max-width:360px;border-radius:24px;display:block;
+    box-shadow:0 30px 80px rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.08);
+  }
+  .hero-art .halo{position:absolute;inset:-40px;z-index:-1;border-radius:50%;
+    background:radial-gradient(circle, rgba(36,150,237,.45), transparent 62%);filter:blur(20px)}
+  @media(max-width:820px){
+    .hero .wrap{grid-template-columns:1fr;padding:64px 24px 72px}
+    .hero-art{order:-1;max-width:280px}
+  }
+
+  /* ============ Section scaffolding ============ */
+  section{padding:76px 0;position:relative}
+  section.alt{background:linear-gradient(180deg,#fff,var(--tint-2))}
+  .sec-head{margin-bottom:44px;max-width:70ch}
+  .sec-head h2{font-size:clamp(28px,3.6vw,40px);font-weight:800;color:var(--ink);margin-bottom:14px}
+
+  /* Section divider bands */
+  .divider{
+    color:#e7eef7;text-align:left;overflow:hidden;position:relative;
+    background:
+      radial-gradient(600px 400px at 85% 20%, rgba(36,150,237,.22), transparent 60%),
+      linear-gradient(120deg,#0D1B2A,#12314f);
+  }
+  .divider .wrap{padding:70px 24px;position:relative;z-index:1}
+  .divider .step{font-size:13px;letter-spacing:.2em;font-weight:700;color:#7fc0ff;text-transform:uppercase}
+  .divider h2{font-size:clamp(32px,5vw,52px);font-weight:800;color:#fff;margin:12px 0 16px}
+  .divider p{color:#aeb9c9;font-size:18px;max-width:60ch}
+  .divider .orb{position:absolute;width:420px;height:420px;right:-80px;top:-120px;border-radius:50%;
+    background:radial-gradient(circle,rgba(13,183,237,.35),transparent 65%);filter:blur(10px)}
+
+  /* ============ Cards & grids ============ */
+  .grid{display:grid;gap:20px}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  @media(max-width:900px){.g3,.g4{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:640px){.g2,.g3,.g4{grid-template-columns:1fr}}
+
+  .card{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:26px;box-shadow:var(--shadow);transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
+  }
+  .card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg);border-color:#cfe3f7}
+  .card h3{font-size:18px;color:var(--ink);margin-bottom:8px}
+  .card p{margin:0;color:var(--muted);font-size:15px}
+
+  .num-badge{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:38px;height:38px;border-radius:11px;font-weight:800;font-size:15px;
+    background:linear-gradient(135deg,var(--blue),var(--cyan));color:#fff;margin-bottom:14px;
+    box-shadow:0 6px 16px rgba(36,150,237,.35);
+  }
+  .icon-badge{
+    display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;
+    border-radius:12px;background:var(--tint);color:var(--blue);font-size:22px;margin-bottom:14px;
+  }
+
+  /* Objectives list */
+  .obj{display:flex;gap:16px;align-items:flex-start}
+  .obj .n{flex:0 0 auto;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;
+    font-weight:800;font-size:14px;background:var(--ink);color:#fff}
+  .obj p{margin:4px 0 0}
+
+  /* ============ Build/Ship/Run flow ============ */
+  .bsr{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:stretch;gap:14px;margin-top:8px}
+  .bsr .step{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;text-align:center;box-shadow:var(--shadow)}
+  .bsr .step .t{font-weight:800;letter-spacing:.12em;color:var(--blue);font-size:14px}
+  .bsr .step .d{font-size:13.5px;color:var(--muted);margin-top:6px}
+  .bsr .arw{display:grid;place-items:center;color:var(--blue);font-size:26px;font-weight:700}
+  @media(max-width:720px){.bsr{grid-template-columns:1fr}.bsr .arw{transform:rotate(90deg)}}
+
+  .callout{
+    display:flex;gap:14px;align-items:flex-start;background:var(--tint);border:1px solid #cfe6fb;
+    border-left:4px solid var(--blue);border-radius:12px;padding:18px 20px;color:#123;margin-top:6px;
+  }
+  .callout .mark{font-size:20px}
+  .callout b{color:var(--ink)}
+
+  /* ============ Tables ============ */
+  .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);background:#fff}
+  table{border-collapse:collapse;width:100%;min-width:520px;font-size:15px}
+  thead th{background:var(--ink);color:#fff;text-align:left;padding:14px 18px;font-weight:700;font-size:14px}
+  thead th:first-child{border-top-left-radius:var(--radius)}
+  thead th:last-child{border-top-right-radius:var(--radius)}
+  tbody td{padding:13px 18px;border-top:1px solid var(--line);color:var(--muted)}
+  tbody tr td:first-child{font-weight:600;color:var(--text)}
+  tbody tr:nth-child(even){background:var(--tint-2)}
+  .yes{color:#128a2b;font-weight:700}
+  .no{color:#c33;font-weight:700}
+  .col-docker{background:rgba(36,150,237,.05)}
+  thead th.col-docker{background:var(--blue)}
+
+  /* ============ SVG diagram frames ============ */
+  .figure{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:26px;box-shadow:var(--shadow)}
+  .figure svg{width:100%;height:auto;display:block}
+  .figcap{font-size:13px;color:var(--muted-2);text-align:center;margin-top:14px;font-style:italic}
+
+  /* ============ Problem / answer cards ============ */
+  .prob{border-radius:var(--radius);border:1px solid var(--line);background:#fff;box-shadow:var(--shadow);overflow:hidden}
+  .prob .top{padding:22px 24px}
+  .prob .top .lbl{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+  .prob .top .lbl .n{width:32px;height:32px;border-radius:9px;background:#fff1f0;color:#e5484d;display:grid;place-items:center;font-weight:800;font-size:14px}
+  .prob .top h3{color:var(--ink);font-size:17.5px}
+  .prob .top p{color:var(--muted);font-size:14.5px;margin:0}
+  .prob .ans{background:linear-gradient(180deg,var(--tint),#eaf6ff);border-top:1px solid #d6ebfb;padding:18px 24px}
+  .prob .ans .k{font-size:11.5px;font-weight:800;letter-spacing:.14em;color:var(--blue);text-transform:uppercase;display:flex;gap:8px;align-items:center;margin-bottom:6px}
+  .prob .ans p{margin:0;color:#123;font-size:14.5px}
+
+  /* ============ Code blocks ============ */
+  .codecard{border-radius:14px;overflow:hidden;border:1px solid #1b2b3f;box-shadow:var(--shadow);background:var(--code-bg)}
+  .codecard .bar{display:flex;align-items:center;gap:8px;padding:11px 16px;background:#0a1626;border-bottom:1px solid #1b2b3f}
+  .codecard .bar .dots{display:flex;gap:7px}
+  .codecard .bar .dots i{width:11px;height:11px;border-radius:50%;display:block}
+  .codecard .bar .fname{margin-left:8px;color:#9fb2c9;font-size:12.5px;font-family:var(--mono);font-weight:600}
+  .codecard pre{margin:0;padding:18px 20px;overflow-x:auto}
+  code,pre{font-family:var(--mono);font-size:13.5px;line-height:1.7}
+  pre code{color:#c9d6e5;white-space:pre}
+  .c-com{color:#7d8590;font-style:italic}
+  .c-key{color:#ff9d8a}      /* instructions / keywords */
+  .c-str{color:#a5d6ff}      /* strings */
+  .c-key2{color:#79c0ff}     /* yaml keys */
+  .c-num{color:#f2cc60}
+
+  .term{color:#123}
+  .cmd-inline{background:var(--ink);color:#a5d6ff;font-family:var(--mono);padding:2px 7px;border-radius:6px;font-size:13px}
+
+  /* ============ Concept nouns ============ */
+  .noun{display:flex;gap:16px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)}
+  .noun .ic{flex:0 0 auto;width:44px;height:44px;border-radius:12px;background:var(--tint);color:var(--blue);display:grid;place-items:center;font-size:20px}
+  .noun h4{color:var(--ink);font-size:16px;margin-bottom:3px}
+  .noun p{margin:0;color:var(--muted);font-size:14px}
+  .noun code{background:var(--tint-2);border:1px solid var(--line);padding:1px 6px;border-radius:5px;color:var(--blue-600);font-size:12.5px}
+
+  /* ============ Takeaways ============ */
+  .take{display:flex;gap:16px;align-items:flex-start}
+  .take .chk{flex:0 0 auto;width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--green),#12a83a);color:#fff;display:grid;place-items:center;font-weight:800;font-size:15px;box-shadow:0 6px 14px rgba(39,201,63,.3)}
+  .take h4{color:var(--ink);font-size:16px;margin-bottom:3px}
+  .take p{margin:0;color:var(--muted);font-size:14px}
+
+  /* who builds what */
+  .vendor{display:flex;gap:12px;padding:12px 0;border-top:1px solid var(--line);align-items:baseline}
+  .vendor:first-child{border-top:none}
+  .vendor b{color:var(--ink);min-width:118px;flex:0 0 auto}
+  .vendor span{color:var(--muted);font-size:14.5px}
+  .list-arrow{list-style:none;padding:0;margin:0}
+  .list-arrow li{position:relative;padding:9px 0 9px 26px;border-top:1px solid var(--line);color:var(--muted);font-size:14.5px}
+  .list-arrow li:first-child{border-top:none}
+  .list-arrow li::before{content:"›";position:absolute;left:4px;top:8px;color:var(--blue);font-weight:800;font-size:16px}
+  .list-arrow li b{color:var(--ink)}
+
+  /* ============ Footer / next ============ */
+  .next{
+    background:radial-gradient(700px 400px at 80% 20%,rgba(36,150,237,.25),transparent 60%),linear-gradient(120deg,#0D1B2A,#12314f);
+    color:#e7eef7;border-radius:22px;padding:44px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;
+    box-shadow:var(--shadow-lg);margin:0 0 8px;
+  }
+  .next .k{color:#7fc0ff;font-weight:700;letter-spacing:.18em;text-transform:uppercase;font-size:12.5px}
+  .next h3{color:#fff;font-size:26px;margin-top:8px}
+  .btn{display:inline-flex;align-items:center;gap:10px;background:#fff;color:var(--ink);font-weight:700;padding:14px 22px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+  .btn:hover{text-decoration:none;transform:translateY(-2px);transition:transform .15s}
+  footer.site{padding:40px 0;text-align:center;color:var(--muted-2);font-size:13.5px}
+
+  .kicker-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  .pager{font-size:12.5px;color:var(--muted-2);font-weight:700;letter-spacing:.08em}
+
+  /* ============ Configuration drift ============ */
+  .drift-note{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted-2);margin:0 0 12px}
+  .env-base{background:#fff;border:1px dashed #cfd6e0;border-radius:12px;padding:12px 18px;font-family:var(--mono);font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;margin-bottom:26px}
+  .env-base b{color:var(--ink);font-family:var(--font)}
+  .envgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  @media(max-width:640px){.envgrid{grid-template-columns:1fr}}
+  .env{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+  .env-h{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;font-weight:800;color:var(--ink);border-bottom:1px solid var(--line);background:var(--tint-2);letter-spacing:.04em}
+  .env-badge{font-size:12px;font-weight:800;padding:3px 10px;border-radius:999px}
+  .env-badge.ok{color:#128a2b;background:#eafaf0;border:1px solid #bfe6cc}
+  .env-badge.bad{color:#c0392b;background:#fff1f0;border:1px solid #f6c9c6}
+  .env ul{list-style:none;margin:0;padding:12px 16px;font-family:var(--mono);font-size:13px}
+  .env li{padding:5px 0;color:var(--muted);display:flex;align-items:center;gap:9px}
+  .env li.same::before{content:"=";color:#9aa6b6;font-weight:800;width:12px;text-align:center}
+  .env li.drift{color:#c0392b;font-weight:700}
+  .env li.drift::before{content:"\2260";color:#e5484d;font-weight:800;width:12px;text-align:center}
+
+  /* ============ History timeline ============ */
+  .tl-legend{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:44px}
+  .tl-tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:5px 11px;border-radius:999px;border:1px solid;margin-bottom:10px}
+  .tl-tag.vm{color:#b45309;background:#fff7ed;border-color:#fed7aa}
+  .tl-tag.anc{color:#0f766e;background:#f0fdfa;border-color:#99f6e4}
+  .tl-tag.docker{color:#1877cf;background:#eaf4ff;border-color:#bcdcf7}
+  .tl-tag.std{color:#7c3aed;background:#f5f3ff;border-color:#ddd6fe}
+  .tl-tag.pod{color:#be185d;background:#fdf2f8;border-color:#fbcfe8}
+
+  .timeline{position:relative;padding:6px 0}
+  .tl-spine{position:absolute;left:50%;top:0;transform:translateX(-50%);width:4px;height:100%;background:var(--line);border-radius:4px;overflow:hidden}
+  .tl-fill{position:absolute;left:0;top:0;width:100%;height:0;border-radius:4px;
+    background:linear-gradient(180deg,#f59e0b,#14b8a6 34%,#2496ED 58%,#7c3aed 80%,#db2777);transition:height .12s linear}
+  .tl-item{position:relative;width:50%;padding:16px 46px;box-sizing:border-box;opacity:0;transition:opacity .55s ease,transform .55s ease}
+  .tl-item.left{left:0;transform:translateX(-26px)}
+  .tl-item.right{left:50%;transform:translateX(26px)}
+  .tl-item.in{opacity:1;transform:translateX(0)}
+  .tl-dot{position:absolute;top:24px;width:18px;height:18px;border-radius:50%;background:#fff;border:4px solid var(--blue);
+    box-shadow:0 0 0 4px #fff,0 3px 8px rgba(13,27,42,.2);z-index:2;transform:scale(0);transition:transform .45s cubic-bezier(.2,.9,.3,1.3) .1s}
+  .tl-item.in .tl-dot{transform:scale(1)}
+  .tl-item.left .tl-dot{right:-9px}
+  .tl-item.right .tl-dot{left:-9px}
+  .tl-item.vm  .tl-dot{border-color:#f59e0b}
+  .tl-item.anc .tl-dot{border-color:#14b8a6}
+  .tl-item.docker .tl-dot{border-color:#2496ED}
+  .tl-item.std .tl-dot{border-color:#7c3aed}
+  .tl-item.pod .tl-dot{border-color:#db2777}
+  .tl-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow);position:relative;transition:transform .18s ease,box-shadow .18s ease}
+  .tl-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg)}
+  .tl-card::after{content:"";position:absolute;top:22px;width:12px;height:2px;background:var(--line)}
+  .tl-item.left .tl-card::after{right:-12px}
+  .tl-item.right .tl-card::after{left:-12px}
+  .tl-year{font-size:21px;font-weight:800;color:var(--ink);letter-spacing:-.01em}
+  .tl-card h3{font-size:16px;color:var(--ink);margin:8px 0 7px;line-height:1.25;padding-right:26px}
+  .tl-card p{font-size:13.5px;color:var(--muted);margin:0;line-height:1.6}
+
+  /* info icon on timeline cards */
+  .tl-detail{display:none}
+  .tl-info{position:absolute;top:12px;right:12px;width:24px;height:24px;border-radius:50%;
+    border:1px solid var(--line);background:#fff;color:var(--muted-2);font-family:var(--mono);
+    font-size:13px;font-weight:800;font-style:italic;line-height:1;cursor:pointer;z-index:3;
+    display:grid;place-items:center;padding:0;transition:transform .16s ease,background .16s ease,color .16s ease,border-color .16s ease,box-shadow .16s ease}
+  .tl-info:hover,.tl-info:focus-visible{background:var(--blue);color:#fff;border-color:var(--blue);transform:scale(1.12);box-shadow:0 3px 10px rgba(36,150,237,.35);outline:none}
+  .tl-info::after{content:"Deep dive";position:absolute;bottom:calc(100% + 8px);right:0;white-space:nowrap;
+    background:var(--ink);color:#fff;font-family:inherit;font-style:normal;font-weight:700;font-size:11px;
+    letter-spacing:.02em;padding:5px 9px;border-radius:7px;opacity:0;transform:translateY(4px);pointer-events:none;
+    transition:opacity .16s ease,transform .16s ease}
+  .tl-info:hover::after,.tl-info:focus-visible::after{opacity:1;transform:translateY(0)}
+
+  /* inline info chip on a keyword */
+  .info-detail{display:none}
+  .kw-info{position:relative;white-space:nowrap}
+  .info-chip{display:inline-grid;place-items:center;vertical-align:super;margin-left:3px;
+    width:20px;height:20px;border-radius:50%;border:1px solid var(--line);background:#fff;color:var(--muted-2);
+    font-family:var(--mono);font-size:11px;font-weight:800;font-style:italic;line-height:1;cursor:pointer;padding:0;
+    transition:transform .16s ease,background .16s ease,color .16s ease,border-color .16s ease,box-shadow .16s ease}
+  .info-chip:hover,.info-chip:focus-visible{background:var(--blue);color:#fff;border-color:var(--blue);transform:scale(1.14);box-shadow:0 3px 10px rgba(36,150,237,.35);outline:none}
+  .info-chip::after{content:"Deep dive";position:absolute;bottom:calc(100% + 8px);left:50%;transform:translate(-50%,4px);white-space:nowrap;
+    background:var(--ink);color:#fff;font-family:var(--sans,inherit);font-style:normal;font-weight:700;font-size:11px;letter-spacing:.02em;
+    padding:5px 9px;border-radius:7px;opacity:0;pointer-events:none;transition:opacity .16s ease,transform .16s ease}
+  .info-chip:hover::after,.info-chip:focus-visible::after{opacity:1;transform:translate(-50%,0)}
+
+  /* deep-dive modal */
+  .info-modal{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;padding:24px}
+  .info-modal.open{display:flex}
+  .info-backdrop{position:absolute;inset:0;background:rgba(13,27,42,.55);backdrop-filter:blur(3px);animation:infoFade .2s ease}
+  .info-box{position:relative;background:#fff;border-radius:16px;box-shadow:0 30px 80px rgba(13,27,42,.4);
+    width:min(760px,100%);max-height:88vh;display:flex;flex-direction:column;overflow:hidden;animation:infoPop .22s cubic-bezier(.2,.9,.3,1.15)}
+  @keyframes infoFade{from{opacity:0}to{opacity:1}}
+  @keyframes infoPop{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+  .info-head{padding:22px 26px 16px;border-bottom:1px solid var(--line)}
+  .info-head .tl-tag{margin-bottom:8px}
+  .info-head h3{font-size:20px;color:var(--ink);margin:0;line-height:1.25;padding-right:32px}
+  .info-close{position:absolute;top:16px;right:16px;width:34px;height:34px;border-radius:9px;border:1px solid var(--line);
+    background:#fff;color:var(--muted);font-size:16px;cursor:pointer;display:grid;place-items:center;transition:background .16s,color .16s}
+  .info-close:hover{background:var(--ink);color:#fff}
+  .info-body{padding:20px 26px 26px;overflow-y:auto;overscroll-behavior:contain}
+  .info-body h4{font-size:15px;color:var(--ink);margin:22px 0 8px;line-height:1.3}
+  .info-body h4:first-child{margin-top:0}
+  .info-body p{font-size:14px;color:var(--muted);line-height:1.65;margin:0 0 10px}
+  .info-body code{font-family:var(--mono);font-size:12.5px;background:var(--tint);color:var(--blue-600);padding:1px 6px;border-radius:5px}
+  .info-body pre{background:var(--code-bg);color:#cfe0f5;font-family:var(--mono);font-size:12px;line-height:1.55;
+    padding:14px 16px;border-radius:10px;overflow-x:auto;margin:0 0 14px;border:1px solid #1b2b3f}
+  .info-body pre code{background:none;color:inherit;padding:0;font-size:inherit}
+  .info-body table{width:100%;border-collapse:collapse;margin:0 0 14px;font-size:13px}
+  .info-body th,.info-body td{text-align:left;padding:8px 12px;border:1px solid var(--line);color:var(--muted)}
+  .info-body th{background:var(--tint);color:var(--ink);font-weight:700}
+  .info-body .info-note{border-left:3px solid var(--blue);background:var(--tint);border-radius:8px;padding:12px 16px;margin:0 0 14px}
+  .info-body .info-note p{margin:0;color:#123}
+  body.modal-lock{overflow:hidden}
+  @media(max-width:760px){
+    .tl-spine{left:19px}
+    .tl-item,.tl-item.left,.tl-item.right{width:100%;left:0;padding:14px 0 14px 52px;transform:translateX(24px)}
+    .tl-item.in{transform:translateX(0)}
+    .tl-item.left .tl-dot,.tl-item.right .tl-dot{left:11px;right:auto}
+    .tl-item.left .tl-card::after,.tl-item.right .tl-card::after{left:-12px;right:auto}
+  }
+
+  /* reveal on scroll */
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease}
+  .reveal.in{opacity:1;transform:none}
+  @media(prefers-reduced-motion:reduce){.reveal,.tl-item{opacity:1;transform:none;transition:none}.tl-dot{transform:scale(1);transition:none}.tl-fill{transition:none}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<!-- ===================== TOP BAR ===================== -->
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="#top" style="color:inherit">
+      <svg class="whale" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="9" fill="#2496ED"/><path d="M8 24c0-1 .6-1.6 1.6-1.6h1.1v-2.1c0-.5.4-.9.9-.9h2.2c.5 0 .9.4.9.9v2.1h1.6v-4.3c0-.5.4-.9.9-.9h2.2c.5 0 .9.4.9.9v4.3h5.3c1.6 0 3-.9 3.6-2.3.2.9.3 1.9.1 2.9-.5 2.8-3 4.8-6.4 4.8H13c-2.8 0-5-2.2-5-5z" fill="#fff"/><circle cx="30.5" cy="18" r="1" fill="#fff"/></svg>
+      <span>Docker Demo <small>· Module 01</small></span>
+    </a>
+    <nav class="topnav">
+      <a href="#foundations">Foundations</a>
+      <a href="#why">Why Docker</a>
+      <a href="#ecosystem">Ecosystem</a>
+      <a href="#history">History</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#practical">Practical</a>
+      <a href="#takeaways">Takeaways</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ===================== HERO ===================== -->
+<a id="top"></a>
+<div class="hero">
+  <div class="wrap">
+    <div>
+      <div class="kicker">Docker Demo · Module 01</div>
+      <h1>Introduction<br><span class="grad">to Docker</span></h1>
+      <p class="sub">Build, ship, and run applications inside containers — and understand <b style="color:#d7e6f5">why Docker exists</b> when VMs already did.</p>
+      <div class="chips">
+        <span class="chip"><span class="dot"></span>Containers</span>
+        <span class="chip"><span class="dot"></span>VMs vs Docker</span>
+        <span class="chip"><span class="dot"></span>Kubernetes</span>
+      </div>
+      <div class="source">Source: <a href="https://github.com/PawanITC/Docker_Demo">github.com/PawanITC/Docker_Demo</a> · modules/01-introduction.md</div>
+    </div>
+    <div class="hero-art">
+      <div class="halo"></div>
+      <img src="assets/docker-whale-hero.png" alt="Friendly Docker whale mascot working at a computer surrounded by shipping containers">
+    </div>
+  </div>
+</div>
+
+<!-- ===================== LEARNING OBJECTIVES ===================== -->
+<section id="objectives" class="alt">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Learning Objectives</div>
+      <h2>What you will learn in this module</h2>
+    </div>
+    <div class="grid g2">
+      <div class="card reveal"><div class="obj"><div class="n">01</div><p>What Docker is and the problem it solves.</p></div></div>
+      <div class="card reveal"><div class="obj"><div class="n">02</div><p>Containers vs VMs — and why Docker was needed when VMs existed.</p></div></div>
+      <div class="card reveal"><div class="obj"><div class="n">03</div><p>Problems Docker solves that VMs cannot.</p></div></div>
+      <div class="card reveal"><div class="obj"><div class="n">04</div><p>Who builds VM technology and who builds Docker.</p></div></div>
+      <div class="card reveal"><div class="obj"><div class="n">05</div><p>Docker's competitors today.</p></div></div>
+      <div class="card reveal"><div class="obj"><div class="n">06</div><p>How Kubernetes differs from Docker — they don't replace each other.</p></div></div>
+      <div class="card reveal" style="grid-column:1/-1"><div class="obj"><div class="n">07</div><p>Core Docker components and architecture.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SECTION 01 DIVIDER ===================== -->
+<div class="divider" id="foundations">
+  <div class="orb"></div>
+  <div class="wrap reveal">
+    <div class="step">Section 01 / 03</div>
+    <h2>Foundations</h2>
+    <p>What Docker is, how containers differ from virtual machines, and the kernel trick that makes it all work.</p>
+  </div>
+</div>
+
+<!-- ===================== WHAT IS DOCKER ===================== -->
+<section>
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker-row"><span class="eyebrow" style="margin:0">What is Docker</span><span class="pager">04 / 20</span></div>
+      <h2>A platform for building, shipping, and running apps in containers.</h2>
+      <p class="lead">Docker is a platform for building, shipping, and running applications inside containers. A container packages your application together with everything it needs to run — code, runtime, libraries, and system tools — so it behaves the same on any machine.</p>
+    </div>
+
+    <div class="bsr reveal" style="margin-bottom:28px">
+      <div class="step"><div class="t">BUILD</div><div class="d">Package code, runtime &amp; libraries into an image</div></div>
+      <div class="arw">→</div>
+      <div class="step"><div class="t">SHIP</div><div class="d">Push the immutable image to a registry</div></div>
+      <div class="arw">→</div>
+      <div class="step"><div class="t">RUN</div><div class="d">Start identical containers anywhere</div></div>
+    </div>
+
+    <div class="callout reveal">
+      <span class="mark">💡</span>
+      <p><b>"It works on my machine"</b> → With Docker, your machine <i>ships</i> with the app. The environment travels with the code, so it runs the same on a laptop, in CI, and in production.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CONTAINERS VS VMS ===================== -->
+<section class="alt">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker-row"><span class="eyebrow" style="margin:0">Containers vs VMs</span><span class="pager">05 / 20</span></div>
+      <h2>Virtualize the OS, not the hardware.</h2>
+      <p class="lead">A VM virtualizes hardware and runs a full guest OS. A container virtualizes the OS and shares the host kernel — far lighter.</p>
+    </div>
+
+    <div class="grid" style="grid-template-columns:1fr 1fr;gap:28px;align-items:start">
+      <div class="tablewrap reveal">
+        <table>
+          <thead><tr><th>Property</th><th>Virtual Machine</th><th class="col-docker">Container</th></tr></thead>
+          <tbody>
+            <tr><td>Isolation</td><td>Full OS per VM</td><td class="col-docker">Shares host kernel</td></tr>
+            <tr><td>Size</td><td>Gigabytes</td><td class="col-docker">Megabytes</td></tr>
+            <tr><td>Startup</td><td>Minutes</td><td class="col-docker">Seconds</td></tr>
+            <tr><td>Overhead</td><td>High (hypervisor)</td><td class="col-docker">Low</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Redrawn crisp SVG replacing the cropped source diagram -->
+      <div class="figure reveal">
+        <svg viewBox="0 0 640 300" role="img" aria-label="Side by side: virtual machine stack versus container stack">
+          <defs>
+            <linearGradient id="appG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eaf6ff"/><stop offset="1" stop-color="#d5ecff"/></linearGradient>
+            <linearGradient id="dockG" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2496ED"/><stop offset="1" stop-color="#0DB7ED"/></linearGradient>
+          </defs>
+          <!-- VM side -->
+          <text x="15" y="20" font-family="Segoe UI,sans-serif" font-size="13" font-weight="800" fill="#0D1B2A">VIRTUAL MACHINES</text>
+          <g font-family="Segoe UI,sans-serif" font-size="12" font-weight="600" text-anchor="middle">
+            <rect x="15"  y="34" width="130" height="40" rx="7" fill="url(#appG)" stroke="#bcdcf7"/><text x="80"  y="58" fill="#0D1B2A">App + Bins</text>
+            <rect x="155" y="34" width="130" height="40" rx="7" fill="url(#appG)" stroke="#bcdcf7"/><text x="220" y="58" fill="#0D1B2A">App + Bins</text>
+            <rect x="15"  y="80" width="270" height="40" rx="7" fill="#fff1f0" stroke="#f6c9c6"/><text x="150" y="104" fill="#8a2b28">Guest OS  (×2)</text>
+            <rect x="15"  y="126" width="270" height="38" rx="7" fill="#fff6e6" stroke="#f2d79a"/><text x="150" y="149" fill="#8a5b12">Hypervisor</text>
+            <rect x="15"  y="170" width="270" height="38" rx="7" fill="#eef1f6" stroke="#d3d9e2"/><text x="150" y="193" fill="#3a4453">Host OS</text>
+            <rect x="15"  y="214" width="270" height="34" rx="7" fill="#e5e9f0" stroke="#cfd6e0"/><text x="150" y="235" fill="#5A6472">Physical Hardware</text>
+          </g>
+          <!-- Container side -->
+          <text x="355" y="20" font-family="Segoe UI,sans-serif" font-size="13" font-weight="800" fill="#0D1B2A">CONTAINERS</text>
+          <g font-family="Segoe UI,sans-serif" font-size="12" font-weight="600" text-anchor="middle">
+            <rect x="355" y="34" width="130" height="40" rx="7" fill="url(#appG)" stroke="#bcdcf7"/><text x="420" y="58" fill="#0D1B2A">App + Bins</text>
+            <rect x="495" y="34" width="130" height="40" rx="7" fill="url(#appG)" stroke="#bcdcf7"/><text x="560" y="58" fill="#0D1B2A">App + Bins</text>
+            <rect x="355" y="80" width="270" height="40" rx="7" fill="url(#dockG)"/><text x="490" y="105" fill="#fff" font-weight="800">Docker Engine</text>
+            <rect x="355" y="126" width="270" height="38" rx="7" fill="#eef1f6" stroke="#d3d9e2"/><text x="490" y="149" fill="#3a4453">Host OS</text>
+            <rect x="355" y="170" width="270" height="34" rx="7" fill="#e5e9f0" stroke="#cfd6e0"/><text x="490" y="191" fill="#5A6472">Physical Hardware</text>
+          </g>
+          <!-- saved space note -->
+          <g font-family="Segoe UI,sans-serif" text-anchor="middle">
+            <rect x="355" y="214" width="270" height="34" rx="7" fill="#eafaf0" stroke="#bfe6cc"/>
+            <text x="490" y="235" font-size="11.5" font-weight="700" fill="#128a2b">No guest OS, no hypervisor → MB &amp; seconds</text>
+          </g>
+        </svg>
+        <div class="figcap">Layered stack — containers share the host kernel, so they drop the guest OS and hypervisor entirely.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== KEY INSIGHT ===================== -->
+<section>
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker-row"><span class="eyebrow" style="margin:0">Key Insight</span><span class="pager">06 / 20</span></div>
+      <h2>A container is just your app's processes in an isolated bubble.</h2>
+      <p class="lead">A VM boots an entire operating system — its own kernel, drivers, init system, services — on top of virtualized hardware. That's why a VM is measured in gigabytes and takes minutes to boot. A container is just your app's processes running in an isolated bubble on the host's <b>already-running</b> kernel. No second OS to boot — so it starts in seconds and weighs megabytes.</p>
+    </div>
+    <div class="grid g2">
+      <div class="card reveal">
+        <div class="icon-badge">🛡️</div>
+        <h3>Namespaces — isolation</h3>
+        <p>A Linux kernel feature that gives each container its own view of the system: PID tree, mount table, network stack, hostname, user IDs. The container thinks it is alone on the machine, even though it shares the kernel.</p>
+      </div>
+      <div class="card reveal">
+        <div class="icon-badge">🎚️</div>
+        <h3>Cgroups — resource limits</h3>
+        <p>Control groups cap how much CPU, memory, block I/O, and network a container can consume. One container cannot starve its neighbours, even on a shared host.</p>
+      </div>
+    </div>
+    <div class="callout reveal" style="margin-top:20px">
+      <span class="mark">◆</span>
+      <p>Docker did <b>not</b> invent these — they are built into every modern Linux kernel. Docker just made them <b>usable</b>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== HOW THE KERNEL LOOKS ===================== -->
+<section class="alt">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker-row"><span class="eyebrow" style="margin:0">Under the Hood · The Kernel</span><span class="pager">07 / 20</span></div>
+      <h2>What does the <span class="kw-info">kernel<button class="info-chip" type="button" data-target="kernel-detail" aria-label="Deep dive: what is a kernel">i</button></span> actually look like?</h2>
+      <p class="lead">The kernel is the core of an operating system — the privileged layer between your programs and the physical hardware. Every container on a host shares this <b>one</b> kernel, so it pays to know what lives inside it. Your programs run in <b>user space</b> and can only reach hardware by asking the kernel through <b>system calls</b>.</p>
+
+      <div class="info-detail" id="kernel-detail" data-title="The kernel — the privileged core of the OS" data-tag="Under the Hood" data-tagclass="docker">
+        <p>The kernel is one of the most important concepts to understand for containers, Docker, Kubernetes, Linux and system design.</p>
+
+        <h4>1. What is a kernel?</h4>
+        <p>The kernel is the core software of an operating system that directly manages the computer's hardware and provides services to applications — the middle layer between applications and hardware:</p>
+        <pre>+----------------------------------+
+|        Applications              |
+|  Java | Python | Chrome | nginx  |
++----------------------------------+
+|        System Libraries          |
+|       libc | JVM | etc.          |
++----------------------------------+
+|             KERNEL               |
+| Process Management               |
+| Memory Management                |
+| File Systems                     |
+| Networking                       |
+| Device Drivers                   |
+| Security                         |
++----------------------------------+
+|             HARDWARE             |
+| CPU | RAM | Disk | Network | GPU |
++----------------------------------+</pre>
+        <p>Applications don't directly control the hardware. Instead:</p>
+        <pre>Java application
+      |  system call
+      v
+    Kernel
+      |
+      v
+    Hardware</pre>
+
+        <h4>2. Why do we need a kernel?</h4>
+        <p>Imagine a Java program wants to read a file with <code>Files.readString(Path.of("data.txt"))</code>. Java doesn't tell the SSD "give me these bytes" directly — the request reaches the kernel:</p>
+        <pre>Java → JVM → (system call) → Kernel → filesystem
+     → storage driver → SSD</pre>
+        <p>The kernel coordinates all of this.</p>
+
+        <h4>3. Process management</h4>
+        <p>Chrome, Java, Docker, PostgreSQL and nginx all want CPU time. The kernel's scheduler decides which process/thread runs on which core:</p>
+        <pre>             Kernel Scheduler
+        +-----------+-----------+
+       CPU0        CPU1        CPU2
+        |           |           |
+      Java        Chrome     PostgreSQL</pre>
+        <p>That's why multiple programs appear to run simultaneously.</p>
+
+        <h4>4. Memory management</h4>
+        <p>On a 16 GB machine, the kernel manages physical RAM, virtual memory, page tables, allocation, protection, swapping and memory mapping. Each process gets its own virtual address space:</p>
+        <pre>Java process — virtual address space
++-------------------+
+| Code | Heap       |
+| Stack | Libraries |
++-------------------+
+        |  kernel maps virtual → physical RAM
+        v</pre>
+        <p>This is why one process normally cannot read another process's memory.</p>
+
+        <h4>5. File system management</h4>
+        <p>When Java runs <code>Files.readString(Path.of("/tmp/a.txt"))</code>, the kernel walks: Path → filesystem → disk blocks → storage driver → SSD. It supports filesystems such as ext4, XFS, Btrfs, NTFS and ZFS.</p>
+
+        <h4>6. Networking</h4>
+        <p>When your app runs <code>socket.connect(server)</code>, the kernel handles the networking stack:</p>
+        <pre>Java → Socket API → Kernel → TCP/IP
+     → network driver → Ethernet/Wi-Fi → Network</pre>
+        <p>It manages TCP, UDP, IP, routing, interfaces, sockets, firewalling and packet processing.</p>
+
+        <h4>7. Device management</h4>
+        <p>Applications don't directly drive the CPU, SSD, GPU, keyboard, NIC or USB devices. The kernel talks to hardware through device drivers:</p>
+        <pre>Application → Kernel → Device Driver → Hardware
+Java → Kernel → NVMe driver → NVMe SSD</pre>
+
+        <h4>8. System calls</h4>
+        <p>Applications request kernel services through system calls — <code>open()</code>, <code>read()</code>, <code>write()</code>, <code>close()</code>, <code>fork()</code>, <code>exec()</code>, <code>mmap()</code>, <code>socket()</code>, <code>connect()</code>:</p>
+        <pre>Application
+     |  system call
+     v
++----------------+
+|     Kernel     |
++----------------+
+     |
+     v
+ Hardware / resources</pre>
+        <p>The Java API (e.g. <code>Files.readString</code>) hides these details from you.</p>
+
+        <h4>9. User space vs kernel space</h4>
+        <p>This is extremely important for containers. Operating systems separate the two:</p>
+        <pre>+---------------------------+
+|        User Space         |
+| Java | Python | nginx     |
+| PostgreSQL                |
++---------------------------+
+|       Kernel Space        |
+| Scheduler | Memory mgr    |
+| Network stack | FS | Drivers |
++---------------------------+
+|         Hardware          |
++---------------------------+</pre>
+        <p>Applications run in user space; the kernel runs in kernel space with far greater privilege. An app can't normally execute arbitrary privileged hardware operations.</p>
+
+        <h4>10. Why containers share the kernel</h4>
+        <p>This connects directly to chroot and BSD Jails:</p>
+        <pre>                 Linux Kernel
+       +-----------+-----------+
+   Container A  Container B  Container C
+     Java         nginx       PostgreSQL</pre>
+        <p>Containers share the same kernel — they don't each carry their own. That's one reason they're lightweight. Compare a VM, where every VM has its own guest kernel:</p>
+        <pre>                 Hypervisor
+        /            |            \
+     VM A          VM B          VM C
+  Linux Kernel  Linux Kernel  Linux Kernel</pre>
+
+        <h4>11. How Docker isolates containers that share one kernel</h4>
+        <p>Linux provides kernel features that carve up the shared kernel:</p>
+        <pre>              Linux Kernel
+       +-----------+-----------+
+   Namespaces   cgroups   capabilities
+   visibility   resources  privileges
+                              + seccomp (syscalls)</pre>
+        <p><b>Namespaces</b> control what a process can see (PID, network, mount, user, IPC, UTS). <b>cgroups</b> control how much it can use (CPU, memory, PIDs, I/O). <b>Capabilities</b> control which privileged operations it may perform. <b>seccomp</b> controls which system calls it can make. This is why understanding the kernel is fundamental to understanding containers.</p>
+
+        <h4>12. See kernel details on Linux</h4>
+        <pre>uname -a   # full kernel banner
+uname -r   # 6.8.0-45-generic  (release)
+uname -s   # Linux            (name)
+uname -m   # x86_64           (architecture)</pre>
+
+        <h4>13. /proc — very important</h4>
+        <p>Linux exposes kernel/process information through <code>/proc</code>:</p>
+        <pre>cat /proc/version    # Linux version 6.8.0-...
+cat /proc/cmdline    # kernel command line
+cat /proc/cpuinfo    # CPU information
+cat /proc/meminfo    # memory
+lsmod                # loaded kernel modules</pre>
+
+        <h4>14. hostnamectl</h4>
+        <p>A quick overview on many modern distros:</p>
+        <pre>hostnamectl
+  Operating System: Ubuntu 24.04 LTS
+  Kernel: Linux 6.8.0-...
+  Architecture: x86-64</pre>
+
+        <h4>15. dmesg</h4>
+        <p>The kernel keeps a log of important events — CPU/memory detection, USB, disks, NICs, drivers, boot:</p>
+        <pre>dmesg | head
+sudo dmesg          # if needed</pre>
+
+        <h4>16. Kernel modules</h4>
+        <pre>lsmod               # nvme, i915, snd_hda_intel, ...
+modinfo nvme        # details for one module</pre>
+        <p>Modules are loadable pieces of kernel functionality, commonly device drivers.</p>
+
+        <h4>17. See kernel configuration</h4>
+        <pre>cat /boot/config-$(uname -r)
+  CONFIG_NAMESPACES=y
+  CONFIG_CGROUPS=y
+  CONFIG_SECCOMP=y</pre>
+        <p>These show which kernel features were compiled/enabled — the interesting ones for containers.</p>
+
+        <h4>18. If you're on Windows</h4>
+        <p>Linux commands won't run directly in PowerShell/CMD. For Windows kernel info:</p>
+        <pre>systeminfo          # OS Name / Version / System Type
+Get-ComputerInfo | Select-Object `
+    WindowsProductName, WindowsVersion,
+    OsBuildNumber, OsArchitecture</pre>
+        <p>Windows uses the <b>Windows NT kernel</b>, not the Linux kernel.</p>
+
+        <h4>19. If you use WSL</h4>
+        <p>Great for learning Linux. Run <code>wsl</code>, then inside it <code>uname -a</code>, <code>cat /proc/version</code>, <code>cat /proc/meminfo</code>, <code>lsmod</code>. In WSL2, Linux apps run on a real Linux kernel while Windows stays the host:</p>
+        <pre>Windows
+   |
+WSL2 virtualization layer
+   |
+Linux Kernel
+   |
+Ubuntu → bash / Java / Python</pre>
+
+        <h4>20. Kernel vs Operating System</h4>
+        <p>These aren't the same thing. The kernel is not the entire OS:</p>
+        <pre>Ubuntu
+├── Linux Kernel
+├── GNU tools
+├── systemd
+├── libraries
+├── apt
+└── applications / desktop</pre>
+        <p>"Linux" technically refers to the kernel; "Ubuntu" is a Linux distribution built around it.</p>
+
+        <h4>21. The connection to the rest of this module</h4>
+        <pre>Kernel
+  +-- processes / memory / filesystem / networking / devices
+  +-- namespaces  → containers
+  +-- cgroups     → resource limits
+  +-- capabilities
+  +-- system calls
+
+Historically:
+chroot → BSD Jail → Linux namespaces + cgroups
+       → container runtimes → Docker / Kubernetes</pre>
+
+        <div class="info-note"><p><b>In one sentence:</b> the kernel is the privileged core of the operating system that manages CPU, memory, processes, filesystems, networking and hardware, while providing controlled interfaces — system calls — for user-space applications to use those resources.</p></div>
+      </div>
+    </div>
+
+    <div class="figure reveal" style="margin-bottom:28px">
+      <svg viewBox="0 0 760 384" role="img" aria-label="Operating system layers: user-space programs call the kernel through system calls; the kernel manages the hardware">
+        <defs>
+          <linearGradient id="kG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1c5fa8"/><stop offset="1" stop-color="#2496ED"/></linearGradient>
+        </defs>
+        <g font-family="Segoe UI,sans-serif">
+          <text x="40" y="22" font-size="12" font-weight="800" fill="#5A6472" letter-spacing="1">USER SPACE</text>
+          <g text-anchor="middle">
+            <rect x="40"  y="32" width="210" height="52" rx="10" fill="#eaf4ff" stroke="#a9d2f7"/><text x="145" y="57" font-size="12.5" font-weight="700" fill="#0D1B2A">Container A</text><text x="145" y="74" font-size="10.5" font-weight="600" fill="#5A6472">app process</text>
+            <rect x="275" y="32" width="210" height="52" rx="10" fill="#eaf4ff" stroke="#a9d2f7"/><text x="380" y="57" font-size="12.5" font-weight="700" fill="#0D1B2A">Container B</text><text x="380" y="74" font-size="10.5" font-weight="600" fill="#5A6472">app process</text>
+            <rect x="510" y="32" width="210" height="52" rx="10" fill="#eaf4ff" stroke="#a9d2f7"/><text x="615" y="57" font-size="12.5" font-weight="700" fill="#0D1B2A">Host process</text><text x="615" y="74" font-size="10.5" font-weight="600" fill="#5A6472">e.g. your shell</text>
+          </g>
+          <line x1="40" y1="104" x2="720" y2="104" stroke="#c7cfda" stroke-width="1.5" stroke-dasharray="4 5"/>
+          <text x="380" y="121" text-anchor="middle" font-size="11.5" font-weight="700" fill="#8A93A0">system-call interface — open() · read() · write() · fork() · socket()</text>
+          <rect x="40" y="132" width="680" height="180" rx="14" fill="url(#kG)"/>
+          <text x="60" y="157" font-size="13" font-weight="800" fill="#fff" letter-spacing="1">LINUX KERNEL · kernel space</text>
+          <g text-anchor="middle" font-size="12" font-weight="700" fill="#123">
+            <rect x="60"  y="168" width="200" height="40" rx="8" fill="#fff" stroke="#bcdcf7"/><text x="160" y="193">Process scheduler</text>
+            <rect x="280" y="168" width="200" height="40" rx="8" fill="#fff" stroke="#bcdcf7"/><text x="380" y="193">Memory manager</text>
+            <rect x="500" y="168" width="200" height="40" rx="8" fill="#fff" stroke="#bcdcf7"/><text x="600" y="193">Virtual file system</text>
+            <rect x="60"  y="214" width="200" height="40" rx="8" fill="#fff" stroke="#bcdcf7"/><text x="160" y="239">Network stack</text>
+            <rect x="280" y="214" width="200" height="40" rx="8" fill="#fff" stroke="#bcdcf7"/><text x="380" y="239">Device drivers</text>
+            <rect x="500" y="214" width="200" height="40" rx="8" fill="#fff" stroke="#bcdcf7"/><text x="600" y="239">IPC &amp; signals</text>
+          </g>
+          <rect x="60" y="262" width="640" height="34" rx="8" fill="#0D1B2A"/>
+          <text x="380" y="284" text-anchor="middle" font-size="12" font-weight="800" fill="#7cc4ff">Namespaces (isolation) + Cgroups (limits) — the features Docker uses</text>
+          <rect x="40" y="330" width="680" height="42" rx="10" fill="#e5e9f0" stroke="#cfd6e0"/>
+          <text x="380" y="356" text-anchor="middle" font-size="12.5" font-weight="700" fill="#3a4453">PHYSICAL HARDWARE — CPU · RAM · Disk · Network card</text>
+        </g>
+      </svg>
+      <div class="figcap">User programs never touch hardware directly — they ask the kernel through system calls.</div>
+    </div>
+
+    <div class="grid g3">
+      <div class="card reveal"><h3>Process scheduler</h3><p>Decides which process runs on each CPU core and for how long — the illusion that everything runs at once.</p></div>
+      <div class="card reveal"><h3>Memory manager</h3><p>Hands out and protects RAM: virtual memory, paging, and keeping one process from reading another's memory.</p></div>
+      <div class="card reveal"><h3>Virtual file system</h3><p>One uniform interface over many filesystems and devices — the Unix idea that "everything is a file".</p></div>
+      <div class="card reveal"><h3>Network stack</h3><p>TCP/IP, routing, sockets, and firewalling — how packets get in and out of the machine.</p></div>
+      <div class="card reveal"><h3>Device drivers</h3><p>Speak the language of disks, GPUs, and network cards on behalf of user programs.</p></div>
+      <div class="card reveal"><h3>System-call interface</h3><p>The guarded doorway between user space and kernel space. Every file, network, or process request passes through it.</p></div>
+    </div>
+
+    <div class="callout reveal" style="margin-top:20px">
+      <span class="mark">🔑</span>
+      <p>For Docker, the two chips that matter are <b>namespaces</b> and <b>cgroups</b>. A container is just an ordinary process that the kernel shows a <i>private view</i> of these subsystems to — its own PIDs, mounts, and network — while everyone still shares the same kernel.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== WHAT IS A GUEST OS ===================== -->
+<section>
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker-row"><span class="eyebrow" style="margin:0">The VM Side · Guest OS</span><span class="pager">08 / 20</span></div>
+      <h2>What is a guest OS?</h2>
+      <p class="lead">When you run a virtual machine, the hypervisor hands it <b>virtual hardware</b> and you install a complete operating system inside it. That installed OS is the <b>guest OS</b>: it has its own kernel, drivers, init system, system libraries, and background services — and it believes it owns a real machine.</p>
+    </div>
+
+    <div class="figure reveal" style="margin-bottom:28px">
+      <svg viewBox="0 0 760 400" role="img" aria-label="Inside one virtual machine, the guest OS is a complete operating system with its own kernel, drivers, services and libraries">
+        <defs>
+          <linearGradient id="gkG" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#c2410c"/><stop offset="1" stop-color="#ea580c"/></linearGradient>
+        </defs>
+        <g font-family="Segoe UI,sans-serif">
+          <rect x="40" y="40" width="680" height="332" rx="16" fill="#f6f9fd" stroke="#7d8a9b" stroke-width="2"/>
+          <rect x="300" y="28" width="160" height="26" rx="8" fill="#0D1B2A"/><text x="380" y="46" text-anchor="middle" font-size="13" font-weight="800" fill="#fff">Virtual Machine</text>
+          <rect x="70" y="66" width="620" height="42" rx="9" fill="#eaf4ff" stroke="#a9d2f7"/><text x="380" y="92" text-anchor="middle" font-size="13" font-weight="700" fill="#0D1B2A">App + Bins</text>
+          <rect x="56" y="120" width="648" height="204" rx="12" fill="#fff4ed" stroke="#f0a875" stroke-width="1.5" stroke-dasharray="5 5"/>
+          <rect x="70" y="110" width="150" height="24" rx="7" fill="url(#gkG)"/><text x="145" y="127" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">GUEST OS</text>
+          <g text-anchor="middle" font-size="12.5" font-weight="700" fill="#0D1B2A">
+            <rect x="76" y="142" width="608" height="38" rx="8" fill="#fff" stroke="#e7d3c4"/><text x="380" y="166">System libraries (glibc, OpenSSL, …)</text>
+            <rect x="76" y="186" width="608" height="38" rx="8" fill="#fff" stroke="#e7d3c4"/><text x="380" y="210">Init system + background services (systemd, cron, sshd)</text>
+            <rect x="76" y="230" width="608" height="38" rx="8" fill="#fff" stroke="#e7d3c4"/><text x="380" y="254">Device drivers (for the virtual hardware)</text>
+            <rect x="76" y="274" width="608" height="42" rx="8" fill="url(#gkG)"/><text x="380" y="300" fill="#fff" font-weight="800">Guest kernel — a whole second kernel</text>
+          </g>
+          <rect x="70" y="330" width="620" height="34" rx="8" fill="#e5e9f0" stroke="#cfd6e0"/><text x="380" y="352" text-anchor="middle" font-size="12" font-weight="700" fill="#3a4453">Virtual hardware — vCPU · vRAM · vDisk · vNIC (from the hypervisor)</text>
+        </g>
+      </svg>
+      <div class="figcap">Everything inside the orange box is a full operating system — duplicated in every single VM.</div>
+    </div>
+
+    <div class="grid g2" style="align-items:start">
+      <div class="card reveal">
+        <div class="icon-badge">📦</div>
+        <h3>What a guest OS includes</h3>
+        <ul class="list-arrow" style="margin-top:8px">
+          <li><b>Its own kernel</b> — a second kernel running on top of the host's.</li>
+          <li><b>Init system + services</b> — systemd, logging, cron, sshd, and more, all booting up.</li>
+          <li><b>System libraries</b> — the shared libraries the app links against.</li>
+          <li><b>Drivers</b> — for the virtual hardware the hypervisor presents.</li>
+          <li><b>A full userland</b> — shell, package manager, utilities.</li>
+        </ul>
+      </div>
+      <div class="card reveal">
+        <div class="icon-badge">⏳</div>
+        <h3>Why that is expensive</h3>
+        <ul class="list-arrow" style="margin-top:8px">
+          <li><b>Gigabytes of disk</b> — a whole OS image per VM.</li>
+          <li><b>Hundreds of MB of RAM idle</b> — spent on OS services, not your app.</li>
+          <li><b>Minutes to boot</b> — because an entire OS starts up.</li>
+          <li><b>Patched separately</b> — every guest OS needs its own updates.</li>
+          <li><b>Duplicated ×N</b> — ten VMs means ten copies of the OS.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout reveal" style="margin-top:20px">
+      <span class="mark">✦</span>
+      <p>A container has <b>no guest OS</b>. It reuses the host's already-running kernel and ships only the app plus its libraries. That single difference is why containers are measured in megabytes and seconds instead of gigabytes and minutes.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== DOCKER ENGINE VS HYPERVISOR ===================== -->
+<section class="alt">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker-row"><span class="eyebrow" style="margin:0">Deep Dive · Engine vs Hypervisor</span><span class="pager">09 / 20</span></div>
+      <h2>Docker Engine vs Hypervisor — in detail.</h2>
+      <p class="lead">Both let many workloads share one physical machine — but they work at completely different layers. A <b>hypervisor virtualizes hardware</b> to run guest operating systems; the <b>Docker Engine orchestrates isolated processes</b> on the host's existing kernel.</p>
+    </div>
+
+    <div class="grid g2" style="align-items:start">
+      <div class="card reveal">
+        <div class="icon-badge">🧱</div>
+        <h3><span class="kw-info">Hypervisor<button class="info-chip" type="button" data-target="hypervisor-aws-detail" aria-label="Deep dive: how AWS uses a hypervisor to create an EC2 instance">i</button></span></h3>
+        <p style="font-weight:700;color:var(--text);margin-bottom:8px">Virtualizes the hardware</p>
+        <p style="margin-bottom:12px">Software that carves one physical machine into virtual machines by emulating CPU, memory, and devices. Each VM gets virtual hardware and runs its own guest OS — giving strong, hardware-level isolation.</p>
+        <ul class="list-arrow">
+          <li><b>Type 1 (bare-metal)</b> — runs directly on hardware: VMware ESXi, Microsoft Hyper-V, KVM.</li>
+          <li><b>Type 2 (hosted)</b> — runs on a desktop OS: VirtualBox, VMware Workstation.</li>
+          <li>Runs <b>virtual machines</b> — each boots a full operating system.</li>
+        </ul>
+
+        <div class="info-detail" id="hypervisor-aws-detail" data-title="How AWS uses a hypervisor to create an EC2 instance" data-tag="Cloud Example" data-tagclass="docker">
+          <p>The easiest way to understand AWS EC2 is to think of the hypervisor as the layer that divides one physical AWS server into multiple isolated virtual machines.</p>
+          <div class="info-note"><p><b>One important clarification:</b> AWS does not use a single hypervisor implementation for every EC2 generation. Older generations used <b>Xen</b>; modern EC2 uses the <b>AWS Nitro System</b>, where much of the traditional virtualization, networking and security work is moved into dedicated hardware and Nitro components.</p></div>
+
+          <h4>1. Start with a physical AWS server</h4>
+          <p>Imagine AWS has a physical server in a data center:</p>
+          <pre>Physical AWS Server
+──────────────────────────────────────
+CPU:       64 physical cores
+RAM:       512 GB
+Storage:   NVMe SSD
+Network:   100 Gbps
+──────────────────────────────────────</pre>
+          <p>AWS doesn't want one customer to consume the entire server. Virtualization lets AWS divide it into multiple EC2 instances:</p>
+          <pre>                Physical Server
+                       │
+                Hypervisor / Nitro
+                       │
+       ┌───────────────┼───────────────┐
+       │               │               │
+     EC2 A           EC2 B           EC2 C
+   4 vCPU/16GB     8 vCPU/32GB     2 vCPU/8GB</pre>
+          <p>Each customer sees their EC2 instance as if it were an independent computer.</p>
+
+          <h4>2. What exactly is a hypervisor?</h4>
+          <p>A hypervisor is software/hardware that manages virtual machines and controls access to physical resources — a traffic controller between virtual machines and physical hardware.</p>
+          <pre>             EC2 Instance
+        ┌──────────────────┐
+        │ Linux            │
+        │ Java Application │
+        │ Docker           │
+        └────────┬─────────┘
+                 │
+                 ↓
+        Virtual CPU / RAM / NIC
+                 │
+        ┌────────▼─────────┐
+        │ Hypervisor/Nitro │
+        └────────┬─────────┘
+                 │
+                 ↓
+        Physical Hardware</pre>
+          <p>The EC2 operating system doesn't directly control the physical AWS server. It interacts with <b>virtual hardware</b>, and AWS controls how that virtual hardware maps onto physical resources.</p>
+
+          <h4>3. What happens when you launch an EC2?</h4>
+          <pre>aws ec2 run-instances \
+  --image-id ami-xxxx \
+  --instance-type m7i.large</pre>
+          <p>Your request reaches the EC2 control plane:</p>
+          <pre>AWS CLI
+   │
+   ↓
+EC2 API
+   │
+   ↓
+AWS Control Plane</pre>
+          <p>AWS determines the Availability Zone, physical host, instance type, AMI, networking configuration, storage, security groups, IAM role, and more.</p>
+
+          <h4>4. Instance type determines virtual hardware</h4>
+          <p>Suppose you select <code>m7i.large</code>. Conceptually AWS defines something like:</p>
+          <pre>m7i.large
+├── 2 vCPU
+├── 8 GiB RAM
+├── Network capability
+└── EBS storage capability</pre>
+          <p>Your operating system sees only its assigned virtual resources:</p>
+          <pre>$ lscpu
+CPU(s): 2</pre>
+          <p>It does not see the entire physical machine (64 cores, 512 GB RAM).</p>
+
+          <h4>5. How does CPU virtualization work?</h4>
+          <pre>Physical CPU          EC2 Instance
+Core 0                vCPU 0
+Core 1                vCPU 1
+Core 2 ...
+Core 63</pre>
+          <p>The virtualization layer maps those virtual CPUs to physical CPU resources:</p>
+          <pre>EC2 A                    Physical CPU
+─────                    ────────────
+vCPU 0 ────────────────→ Core 17
+vCPU 1 ────────────────→ Core 18</pre>
+          <p>But don't treat this as a permanent <code>vCPU 0 = Core 17</code> mapping — the underlying scheduling is more sophisticated. The guest OS believes it has CPUs, while AWS controls how those virtual CPUs execute on the physical CPU.</p>
+
+          <h4>6. What about RAM?</h4>
+          <p>The physical machine has 512 GB; your instance sees 8 GB. The virtualization layer ensures your VM cannot access another customer's memory:</p>
+          <pre>Physical RAM
+┌─────────────────────────────────────────────┐
+│ Customer A │ Customer B │ Customer C         │
+│   8 GB     │   16 GB    │    32 GB           │
+└─────────────────────────────────────────────┘</pre>
+          <p>Customer A cannot execute <code>read(Customer_B_memory)</code>. This isolation is fundamental to AWS's multi-tenant architecture.</p>
+
+          <h4>7. How does the EC2 OS boot?</h4>
+          <p>An AMI contains what's needed to create the instance's root volume, including the OS image:</p>
+          <pre>AMI
+ │
+ ├── Linux filesystem
+ ├── Kernel / boot configuration
+ ├── Packages
+ └── Configuration
+       │
+       ↓
+   Root volume
+       │
+       ↓
+   EC2 instance</pre>
+          <p>AWS creates/attaches the required storage and presents virtual devices to the instance, which then boots just like a physical computer from the OS's perspective.</p>
+
+          <h4>8. What does the hypervisor actually expose?</h4>
+          <pre>                 EC2 Linux
+                    │
+       ┌────────────┼────────────┐
+       │            │            │
+     vCPU         vRAM         vNIC
+       │            │            │
+       └────────────┼────────────┘
+                    │
+              Virtualization
+                    │
+                    ↓
+          AWS physical resources</pre>
+          <p>The OS thinks a CPU, memory, network card and block device are present — but those devices are virtualized/paravirtualized and ultimately backed by AWS infrastructure.</p>
+
+          <h4>9. What about networking?</h4>
+          <p>Suppose your EC2 has private IP <code>10.0.1.25</code> and runs <code>curl https://example.com</code>:</p>
+          <pre>Application
+    ↓
+Linux network stack
+    ↓
+Virtual NIC (ENI)
+    ↓
+Nitro networking hardware
+    ↓
+AWS network
+    ↓
+Internet Gateway / NAT / etc.
+    ↓
+Internet</pre>
+          <p>The ENI (Elastic Network Interface) provides the logical network identity: private IP, public/Elastic IP, MAC address, security groups and subnet association.</p>
+
+          <h4>10. Where does the Security Group work?</h4>
+          <pre>Internet
+   │
+   ↓
+AWS networking
+   │
+   ↓
+Security Group
+   │
+   ├── TCP 22   → ALLOW
+   ├── TCP 80   → ALLOW
+   └── TCP 3306 → DENY
+   │
+   ↓
+EC2</pre>
+          <p>Security Groups are implemented as part of AWS's networking infrastructure rather than as an iptables rule inside your Linux machine. Even if the OS is compromised, AWS's network-level controls still exist outside the guest OS.</p>
+
+          <h4>11. What about EBS?</h4>
+          <p>The OS might see <code>/dev/nvme0n1</code>, but that doesn't mean a physical disk is attached to that server:</p>
+          <pre>EC2
+ │ virtual block device
+ ↓
+Nitro / AWS storage networking
+ │
+ ↓
+EBS infrastructure
+ │
+ ↓
+Physical storage</pre>
+          <p>This is why you can stop an EC2 instance and later start it again while retaining its EBS-backed root volume.</p>
+
+          <h4>12. Modern EC2: the Nitro System</h4>
+          <p>It is inaccurate to describe all modern EC2 simply as "a hypervisor running on a physical server." Modern EC2 uses the AWS Nitro System:</p>
+          <pre>                EC2 instance
+                     │
+          ┌──────────┼──────────┐
+          │          │          │
+         CPU        RAM       Devices
+          │          │          │
+          └──────────┼──────────┘
+                     │
+              Nitro System
+          ┌──────────┼──────────┐
+          │          │          │
+       Nitro Card  Nitro SSD   Nitro
+       Networking  Controller  Security
+                     │
+                     ↓
+              AWS infrastructure</pre>
+          <p>Nitro is dedicated hardware and software providing virtualization, networking, storage I/O, security/isolation and management — reducing infrastructure software running on the host CPU.</p>
+
+          <h4>13. Why did AWS build Nitro?</h4>
+          <p>In traditional virtualization a large hypervisor handles many responsibilities. AWS moved much of that into dedicated hardware:</p>
+          <pre>                 Physical server
+                       │
+        ┌──────────────┼──────────────┐
+        │              │              │
+      CPU/RAM       Nitro Card      Storage
+        │              │              │
+        │         Networking/I/O     │
+        └──────────────┬──────────────┘
+                       │
+                  EC2 instances</pre>
+          <p>This improves performance, isolation, security, scalability and host efficiency.</p>
+
+          <h4>14. What about "bare metal" EC2?</h4>
+          <pre>EC2 bare metal
+        │
+        ↓
+Physical server
+        │
+        ↓
+Your OS</pre>
+          <p>There isn't a traditional customer-visible VM layer between your OS and the physical CPU. Useful for direct hardware access, specialized licensing, nested virtualization and very high-performance workloads.</p>
+
+          <h4>15. Does AWS use the hypervisor to create S3, Lambda, RDS?</h4>
+          <p>No — not every AWS service is <code>Hypervisor → EC2 → service</code>. Different services use different infrastructure:</p>
+          <pre>EC2                     Lambda
+Physical server         Lambda function
+     ↓                       ↓
+Nitro virtualization    AWS Lambda execution env
+     ↓                       ↓
+EC2 instance            AWS compute infrastructure
+     ↓
+Your OS</pre>
+          <pre>RDS                     S3
+ ↓                      │
+AWS-managed DB infra    ├── Distributed storage
+ ↓                      ├── Replication
+Compute + storage       ├── Metadata
+ + networking           ├── Storage nodes
+                        └── Networking</pre>
+          <div class="info-note"><p>Don't generalize "AWS uses the hypervisor to create every AWS resource" — that's not accurate. S3 is a distributed object-storage service, not "an EC2 instance with a disk."</p></div>
+
+          <h4>16. EC2 vs Docker vs Kubernetes</h4>
+          <pre>EC2 (a virtual machine)     Docker (containers)
+Physical server             EC2
+     ↓                       └── Linux
+AWS Nitro                          └── Container runtime
+     ↓                                    ├── Container A
+EC2 VM                                    ├── Container B
+     ↓                                    └── Container C
+Linux
+     ↓
+Application</pre>
+          <pre>Kubernetes (orchestrates containers)
+AWS
+ ├── EC2 Node
+ │     ├── Pod A → Container
+ │     └── Pod B → Container
+ └── EC2 Node
+       ├── Pod C
+       └── Pod D</pre>
+          <p>The key relationship: <code>Hypervisor → EC2 → Linux → container runtime → containers → Kubernetes manages them</code>.</p>
+
+          <h4>17. Complete example</h4>
+          <p>An e-commerce app (React frontend, Java Spring Boot, PostgreSQL, Redis) with the backend deployed to EC2:</p>
+          <pre>                AWS Data Center
+┌──────────────────────────────────────────────┐
+│              Physical Server                   │
+│       CPU / RAM / Network / Storage            │
+│                    │                           │
+│              Nitro System                      │
+│                    │                           │
+│        ┌───────────┴───────────┐               │
+│     EC2 A                   EC2 B              │
+│     4 vCPU / 16 GB          4 vCPU / 16 GB     │
+│        │                       │               │
+│     Ubuntu                  Ubuntu             │
+│        │                       │               │
+│  Spring Boot              Other service        │
+└──────────────────────────────────────────────┘</pre>
+          <p>An EC2 A application sends a database request:</p>
+          <pre>Spring Boot → Linux TCP/IP → ENI → Nitro networking → VPC → RDS PostgreSQL</pre>
+          <p>Nitro provides the isolated compute environment, while other AWS services provide networking, storage and databases.</p>
+
+          <h4>18. What happens if your EC2 crashes?</h4>
+          <pre>EC2 instance          EBS volume
+     X                     ✓
+     │
+     ↓
+Kernel crash</pre>
+          <p>AWS infrastructure still exists and can terminate/restart/recreate the instance depending on configuration. If the root filesystem is EBS-backed, the persistent storage survives the instance lifecycle — a fundamental cloud idea: <b>compute and persistent storage can be separated.</b></p>
+
+          <h4>19. The most important mental model</h4>
+          <pre>┌────────────────────────────────────────────┐
+│              AWS Data Center                 │
+│   ┌────────────────────────────────────┐     │
+│   │        Physical Server              │     │
+│   │ CPU / RAM / NIC / Storage           │     │
+│   │              │                      │     │
+│   │        Nitro System                 │     │
+│   │              │                      │     │
+│   │   ┌──────────┼──────────┐           │     │
+│   │ EC2-1      EC2-2      EC2-3         │     │
+│   │   │          │          │           │     │
+│   │ Linux      Linux      Linux         │     │
+│   │   │          │          │           │     │
+│   │ Apps       Apps       Apps          │     │
+│   └────────────────────────────────────┘     │
+└────────────────────────────────────────────┘</pre>
+          <p>The virtualization layer ensures CPU, memory, network/device and storage-access isolation, plus security boundaries between customers.</p>
+
+          <h4>Interview-quality answer</h4>
+          <div class="info-note"><p><i>"How does AWS create an EC2 instance using virtualization?"</i> — "AWS runs EC2 on physical servers using the Nitro System on modern instance generations. When we launch an EC2 instance, the EC2 control plane selects suitable underlying infrastructure and provisions an isolated virtual machine with the CPU, memory and virtual devices corresponding to the selected instance type. Nitro provides the virtualization, networking, storage and security functions, while the guest OS sees standard virtual hardware and boots from the selected AMI. The instance's network interface connects it to the VPC, and EBS provides persistent block storage. The virtualization and hardware isolation ensure multiple customers can safely share the same physical infrastructure while each EC2 instance behaves like an independent server." The key chain to remember: <b>Physical server → Nitro virtualization → EC2 VM → OS → application</b> — and EC2 is only one AWS service; AWS does not create every resource by creating an EC2 VM.</p></div>
+        </div>
+      </div>
+      <div class="card reveal">
+        <div class="icon-badge">🐳</div>
+        <h3><span class="kw-info">Docker Engine<button class="info-chip" type="button" data-target="engine-detail" aria-label="Deep dive: what happens behind docker run">i</button></span></h3>
+        <p style="font-weight:700;color:var(--text);margin-bottom:8px">Virtualizes the OS (processes)</p>
+        <p style="margin-bottom:12px">Not a hypervisor. A daemon and runtime that turn an image into an isolated process on the host's <i>existing</i> kernel — no virtual hardware, no guest OS — using kernel namespaces and cgroups.</p>
+        <ul class="list-arrow">
+          <li><b>dockerd</b> — the daemon exposing the REST API.</li>
+          <li><b>containerd</b> — the high-level container runtime.</li>
+          <li><b>runc</b> — spawns the container using namespaces + cgroups.</li>
+          <li>Runs <b>containers</b> — each is just a process.</li>
+        </ul>
+
+        <div class="info-detail" id="engine-detail" data-title="docker run nginx — from your keyboard to the nginx process" data-tag="Behind the Scenes" data-tagclass="docker">
+          <p>Let's take the exact command and follow it all the way from your keyboard to the nginx process:</p>
+          <pre>docker run -d --name my-nginx -p 8080:80 nginx</pre>
+          <div class="info-note"><p><b>Correction to the simplified picture:</b> in modern Docker, <code>dockerd</code> delegates container lifecycle work to <code>containerd</code>, and containerd invokes an OCI runtime such as <code>runc</code>. dockerd itself does not directly call the Linux kernel for every container operation.</p></div>
+
+          <h4>1. You type the command</h4>
+          <pre>docker       → Docker CLI
+run          → create + start container
+-d           → detached / background
+--name       → container name = my-nginx
+-p 8080:80   → host port 8080 → container port 80
+nginx        → image to use</pre>
+          <pre>Shell → docker executable</pre>
+          <p>The <code>docker</code> executable is a <b>client</b>. It does not itself create the Linux container.</p>
+
+          <h4>2. Docker CLI finds the Docker Engine</h4>
+          <p>The CLI needs to know which daemon to talk to. On Linux it typically uses the Docker Engine API Unix socket:</p>
+          <pre>docker CLI
+    |  HTTP request over Unix socket
+    v
+/run/docker.sock
+    |
+    v
+dockerd</pre>
+          <pre>ls -l /var/run/docker.sock   # /var/run usually points into /run</pre>
+
+          <h4>3. What API request does docker run generate?</h4>
+          <p>It's not one API call — the CLI performs several operations:</p>
+          <pre>docker run
+    +---- POST /containers/create
+    +---- POST /containers/{id}/start
+    (plus image ops if the image is missing)</pre>
+          <p>The create request carries config roughly like:</p>
+          <pre>{
+  "Image": "nginx",
+  "name": "my-nginx",
+  "ExposedPorts": { "80/tcp": {} },
+  "HostConfig": {
+    "PortBindings": {
+      "80/tcp": [ { "HostPort": "8080" } ]
+    }
+  }
+}</pre>
+          <p>Exact JSON varies by Docker API version and CLI behaviour.</p>
+
+          <h4>4. dockerd receives the request</h4>
+          <pre>docker CLI → (Docker Engine API) → dockerd</pre>
+          <p><code>dockerd</code> is a long-running daemon:</p>
+          <pre>ps aux | grep dockerd
+systemctl status docker</pre>
+
+          <h4>5. First question: do I have the nginx image?</h4>
+          <pre>docker images
+REPOSITORY   TAG       IMAGE ID
+nginx        latest    abc123...</pre>
+          <p>If <code>nginx:latest</code> isn't local, Docker must pull it.</p>
+
+          <h4>6. Image pull</h4>
+          <pre>docker run nginx → dockerd
+   | image not found locally
+   v
+Docker Registry (Docker Hub by default for "nginx")
+   +-- nginx manifest
+   +-- layer A / B / C / D</pre>
+          <pre>Unable to find image 'nginx:latest' locally
+latest: Pulling from library/nginx
+Status: Downloaded newer image for nginx:latest</pre>
+
+          <h4>7. An image isn't a running container</h4>
+          <p>An image is a template/package; a container is a running instance created from it — like a class vs an object:</p>
+          <pre>Image (filesystem layers + metadata + config)
+  ↓
+Container
+
+nginx image
+  +---- container 1
+  +---- container 2
+  +---- container 3</pre>
+
+          <h4>8. Image layers</h4>
+          <pre>          Container
+        Writable layer          ← per-container, read/write
+             |
+       nginx image
+       +---------+
+       | Layer 4 | nginx configuration
+       | Layer 3 | nginx binaries
+       | Layer 2 | libraries
+       | Layer 1 | base Linux filesystem
+       +---------+</pre>
+          <p>Image layers are immutable; the container gets a writable layer on top — so a new container doesn't copy the whole image.</p>
+
+          <h4>9. dockerd creates the container</h4>
+          <pre>docker ps -a
+CONTAINER ID   IMAGE   COMMAND                  STATUS
+abc123         nginx   "/docker-entrypoint.…"   Up ...</pre>
+          <pre>Container
+├── ID / name = my-nginx / image = nginx
+├── command / environment / mounts
+├── network config / port mapping
+└── resource config</pre>
+          <p>But we haven't reached the actual Linux process yet.</p>
+
+          <h4>10. Where containerd comes in</h4>
+          <pre>Docker CLI → dockerd → containerd → runc → Linux Kernel</pre>
+          <p><code>containerd</code> handles container lifecycle, image management, snapshots/filesystems, execution coordination, networking integration and runtime interaction.</p>
+
+          <h4>11. containerd prepares the container</h4>
+          <p>It prepares the root filesystem, process configuration, environment, mounts, network and resource config, then hands off to an OCI runtime. The OCI runtime spec defines how a runtime should create and run a container.</p>
+
+          <h4>12. Enter runc</h4>
+          <pre>containerd
+   | "Start this container per this OCI config"
+   v
+runc</pre>
+          <p><code>runc</code> is the low-level OCI runtime — much closer to the kernel than the CLI or dockerd.</p>
+
+          <h4>13. What does runc actually do?</h4>
+          <p>runc asks the Linux kernel to establish the container's isolation:</p>
+          <pre>runc
+ +-- PID namespace
+ +-- Mount namespace
+ +-- Network namespace
+ +-- UTS namespace
+ +-- User namespace
+ +-- cgroups
+ +-- capabilities
+ +-- seccomp
+ +-- filesystem mounts
+ +-- execute nginx</pre>
+          <p>These aren't magic Docker features — they're primarily Linux kernel mechanisms.</p>
+
+          <h4>14. PID namespace</h4>
+          <pre>Container view       Host view
+PID 1  (nginx)  ────> PID 12345  (nginx master)
+PID 2  (worker) ────> PID 12346  (nginx worker)</pre>
+          <p><code>docker exec my-nginx ps</code> shows nginx as PID 1; on the host it has a different PID.</p>
+
+          <h4>15. Mount namespace</h4>
+          <p><code>docker exec my-nginx ls /</code> looks like a normal root — but it's the container's own root filesystem, not the host's:</p>
+          <pre>Host filesystem
+   +-- Docker storage
+         +-- nginx container root filesystem
+               (its own /etc/nginx/nginx.conf, ...)</pre>
+
+          <h4>16. chroot connection</h4>
+          <pre>chroot → change filesystem root   (the ancestor)
+
+Container (modern) does much more:
+ +-- Mount / PID / Network / User namespaces
+ +-- cgroups + capabilities + seccomp
+ +-- root filesystem</pre>
+
+          <h4>17. Network namespace</h4>
+          <p>Because of <code>-p 8080:80</code>, nginx listens on container port 80 inside its own network environment:</p>
+          <pre>Host
+ +-- Docker networking
+       +-- Container network namespace
+             +-- eth0  →  172.x.x.x
+             +-- nginx listens on 0.0.0.0:80</pre>
+
+          <h4>18. What does -p 8080:80 actually mean?</h4>
+          <pre>curl http://localhost:8080
+   v  Host network
+   v  Docker port mapping
+   v  Container network namespace
+   v  nginx:80</pre>
+          <p>Host port 8080 → container port 80.</p>
+
+          <h4>19. cgroups</h4>
+          <pre>docker run --memory=512m --cpus=1 nginx
+
+nginx process
+      v
+   cgroup
+   /    \
+ CPU    Memory
+ 1 CPU   512 MB</pre>
+          <p>The kernel enforces those resource constraints.</p>
+
+          <h4>20. Capabilities</h4>
+          <pre>Container root
+   +-- CAP_CHOWN
+   +-- CAP_NET_RAW
+   +-- CAP_SETUID  ...
+   X-- dangerous capabilities removed
+
+root inside container  ≠  unrestricted root on host</pre>
+
+          <h4>21. seccomp</h4>
+          <pre>nginx → syscall → Linux kernel → seccomp filter
+                                   +-- allowed → execute
+                                   +-- denied  → reject</pre>
+          <p>This limits the system-call surface available to the container.</p>
+
+          <h4>22. Finally: execute nginx</h4>
+          <pre>runc
+ | execve(...)
+ v
+nginx
+
+Linux Kernel → PID 12345 → nginx master
+                              +-- nginx worker
+                              +-- nginx worker</pre>
+          <p>nginx is not a VM — it's a normal Linux process running inside an isolated set of kernel facilities.</p>
+
+          <h4>23. What does docker ps show?</h4>
+          <pre>docker ps
+CONTAINER ID   IMAGE   COMMAND                  STATUS
+abc123         nginx   "/docker-entrypoint.…"   Up 10 seconds</pre>
+          <p>The CLI asks dockerd → containerd for container state and displays it.</p>
+
+          <h4>24. docker exec</h4>
+          <pre>docker exec -it my-nginx /bin/bash
+
+docker CLI → dockerd → containerd → OCI runtime
+   → create another process inside the container's namespaces
+   → /bin/bash</pre>
+          <p>The new bash process joins the container's environment; run <code>ps</code> to see the container's process view.</p>
+
+          <h4>25. Stopping it</h4>
+          <pre>docker stop my-nginx
+
+docker CLI → dockerd → containerd → runtime
+   → Linux kernel → SIGTERM → nginx exits</pre>
+          <p>Docker gives the process time to shut down gracefully before forcefully killing it if necessary.</p>
+
+          <h4>26. What happens to the image?</h4>
+          <p>Nothing. After <code>docker stop my-nginx</code> the image <code>nginx:latest</code> remains (<code>docker images</code>). The container is a separate object:</p>
+          <pre>Image
+  +---- Container   ← docker rm my-nginx removes only this</pre>
+
+          <h4>27. Observe the whole thing yourself</h4>
+          <pre>docker run -d --name my-nginx -p 8080:80 nginx
+docker ps                       # see the container
+docker inspect my-nginx         # Config/State/Mounts/NetworkSettings...
+docker inspect -f \
+  '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' my-nginx
+docker top my-nginx             # processes
+docker logs my-nginx            # logs
+docker exec -it my-nginx /bin/bash   # or /bin/sh
+curl http://localhost:8080      # nginx response</pre>
+
+          <h4>28. You can see the host process too</h4>
+          <pre>docker top my-nginx
+UID    PID     PPID   CMD
+root   12345   ...    nginx: master process
+
+ps -ef | grep nginx    # same process, from the host's view</pre>
+          <pre>VM:      Host → Hypervisor → VM → Guest kernel → nginx
+Docker:  Host Linux kernel → namespace → nginx</pre>
+
+          <h4>29. Why isn't runc running permanently?</h4>
+          <pre>dockerd → containerd → runc → creates/starts container → nginx</pre>
+          <p><code>runc</code> creates/starts the container process and exits; it isn't a long-running daemon. That's why <code>ps aux | grep runc</code> won't show a persistent runc process the way dockerd/containerd appear.</p>
+
+          <h4>30. The complete behind-the-scenes picture</h4>
+          <pre>$ docker run -d --name my-nginx -p 8080:80 nginx
+                    |
+              Docker CLI
+                    | Docker Engine API
+                dockerd
+          +---------+---------+
+   Image management   Container lifecycle
+          |                   |
+      Registry            containerd
+                              |
+                            runc
+               +--------------+--------------+
+          namespaces       cgroups      capabilities
+               +--------------+--------------+
+                              |
+                         Linux Kernel
+                              |
+                       nginx process
+                    +---------+---------+
+                master              workers
+                    |
+              listens on :80
+                    |
+             Docker networking
+                    |
+              host :8080</pre>
+
+          <h4>31. The most important conceptual distinction</h4>
+          <pre>Docker CLI      → your interface (run / ps / stop / exec)
+Engine/containerd/runc → container management & runtime
+Linux kernel    → the real OS primitives:
+   processes, memory, namespaces, cgroups,
+   networking, filesystems, syscalls, devices</pre>
+          <p>Docker doesn't invent process isolation — it orchestrates Linux kernel primitives to give you a convenient container abstraction.</p>
+
+          <h4>Interview-quality answer</h4>
+          <div class="info-note"><p><i>"What happens internally when you run <code>docker run nginx</code>?"</i> — <code>docker</code> is a client that sends a request to the Docker Engine API, typically over the Docker Unix socket. <code>dockerd</code> checks whether the nginx image exists locally and pulls it from a registry if necessary. It creates the container configuration and delegates lifecycle management to <code>containerd</code>. containerd uses an OCI runtime such as <code>runc</code>, which prepares the container root filesystem and configures Linux namespaces, cgroups, capabilities, mounts and other isolation settings. runc then starts the nginx process through the Linux kernel. The nginx process is therefore a normal Linux process, but with an isolated filesystem, process view, network environment and resource limits. <code>-p 8080:80</code> configures networking so traffic arriving at host port 8080 reaches port 80 inside the container."</p></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tablewrap reveal" style="margin-top:28px">
+      <table>
+        <thead><tr><th>Aspect</th><th>Hypervisor</th><th class="col-docker">Docker Engine</th></tr></thead>
+        <tbody>
+          <tr><td>What it virtualizes</td><td>Physical hardware</td><td class="col-docker">The operating system (processes)</td></tr>
+          <tr><td>Unit it runs</td><td>Virtual machine (full guest OS)</td><td class="col-docker">Container (isolated process)</td></tr>
+          <tr><td>Isolation mechanism</td><td>Virtual hardware + VM boundary</td><td class="col-docker">Kernel namespaces + cgroups</td></tr>
+          <tr><td>Guest OS required</td><td>Yes — one per VM</td><td class="col-docker">No — shares the host kernel</td></tr>
+          <tr><td>Startup time</td><td>Seconds to minutes (boots an OS)</td><td class="col-docker">Milliseconds to seconds (starts a process)</td></tr>
+          <tr><td>Footprint</td><td>Gigabytes</td><td class="col-docker">Megabytes</td></tr>
+          <tr><td>Density per host</td><td>A handful to dozens</td><td class="col-docker">Dozens to hundreds</td></tr>
+          <tr><td>Isolation strength</td><td>Stronger (hardware-level)</td><td class="col-docker">Lighter (kernel-level)</td></tr>
+          <tr><td>Examples</td><td>ESXi, Hyper-V, KVM, VirtualBox</td><td class="col-docker">dockerd + containerd + runc</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="figure reveal" style="margin-top:28px">
+      <svg viewBox="0 0 760 300" role="img" aria-label="In production a hypervisor runs a virtual machine, and the Docker Engine runs containers inside that VM">
+        <defs><linearGradient id="deG" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2496ED"/><stop offset="1" stop-color="#0DB7ED"/></linearGradient></defs>
+        <g font-family="Segoe UI,sans-serif">
+          <rect x="16" y="20" width="728" height="264" rx="16" fill="none" stroke="#9aa6b6" stroke-width="2" stroke-dasharray="2 6"/>
+          <rect x="300" y="10" width="160" height="22" rx="7" fill="#0D1B2A"/><text x="380" y="26" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">Physical server</text>
+          <rect x="36" y="42" width="688" height="150" rx="12" fill="#f4f8fd" stroke="#7d8a9b" stroke-width="2"/>
+          <rect x="48" y="34" width="224" height="22" rx="7" fill="#12314f"/><text x="160" y="50" text-anchor="middle" font-size="11.5" font-weight="800" fill="#fff">Virtual Machine · Guest OS</text>
+          <g text-anchor="middle" font-weight="700" font-size="12" fill="#0D1B2A">
+            <rect x="56"  y="66" width="196" height="42" rx="9" fill="#eaf4ff" stroke="#a9d2f7"/><text x="154" y="92">Container</text>
+            <rect x="268" y="66" width="196" height="42" rx="9" fill="#eaf4ff" stroke="#a9d2f7"/><text x="366" y="92">Container</text>
+            <rect x="480" y="66" width="196" height="42" rx="9" fill="#eaf4ff" stroke="#a9d2f7"/><text x="578" y="92">Container</text>
+          </g>
+          <rect x="56" y="120" width="620" height="30" rx="8" fill="url(#deG)"/><text x="366" y="140" text-anchor="middle" font-size="12" font-weight="800" fill="#fff">Docker Engine — dockerd · containerd · runc</text>
+          <rect x="56" y="156" width="620" height="28" rx="8" fill="#eef1f6" stroke="#d3d9e2"/><text x="366" y="175" text-anchor="middle" font-size="11.5" font-weight="700" fill="#3a4453">Guest OS (kernel + system libraries)</text>
+          <rect x="36" y="204" width="688" height="34" rx="9" fill="#e7edf5" stroke="#cfd6e0"/><text x="380" y="226" text-anchor="middle" font-size="12" font-weight="800" fill="#26364a">HYPERVISOR — creates &amp; runs the virtual machine</text>
+          <rect x="36" y="244" width="688" height="30" rx="9" fill="#e5e9f0" stroke="#cfd6e0"/><text x="380" y="264" text-anchor="middle" font-size="11.5" font-weight="700" fill="#5A6472">Physical hardware — CPU · RAM · Disk · NIC</text>
+        </g>
+      </svg>
+      <div class="figcap">They are not rivals — in the cloud they stack: containers inside the Docker Engine, inside a VM, on a hypervisor.</div>
+    </div>
+
+    <div class="callout reveal" style="margin-top:22px">
+      <span class="mark">🧩</span>
+      <p>In the cloud you often see <b>both, layered</b>: the hypervisor splits the physical server into VMs, and the Docker Engine runs containers <i>inside</i> a VM. You get hardware-level isolation from the hypervisor and fast, portable app packaging from Docker.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SECTION 02 DIVIDER ===================== -->
+<div class="divider" id="why">
+  <div class="orb"></div>
+  <div class="wrap reveal">
+    <div class="step">Section 02 / 03</div>
+    <h2>Why Docker Was Needed</h2>
+    <p>VMs solved isolation. Docker solves the four problems VMs left behind — environment drift, weight, setup pain, and slow scaling.</p>
+  </div>
+</div>
+
+<!-- ===================== PROBLEMS DOCKER SOLVES ===================== -->
+<section>
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker-row"><span class="eyebrow" style="margin:0">Problems Docker Solves</span><span class="pager">11 / 20</span></div>
+      <h2>VMs solved isolation. Docker solves what they didn't.</h2>
+    </div>
+    <div class="grid g2">
+      <div class="prob reveal">
+        <div class="top"><div class="lbl"><span class="n">01</span><h3>↻ "It works on my machine"</h3></div>
+          <p>Code runs on a dev laptop but breaks in test/prod because of a different library, OS patch, or missing dependency. Each VM image is hand-configured and drifts.</p></div>
+        <div class="ans"><div class="k">◆ Docker's answer</div><p>The app and all its dependencies are baked into a single image defined by a Dockerfile. The same image runs identically on laptop, CI, and production.</p></div>
+      </div>
+      <div class="prob reveal">
+        <div class="top"><div class="lbl"><span class="n">02</span><h3>▦ VMs are heavy and slow</h3></div>
+          <p>A full guest OS per VM — a handful of VMs per server, GBs each, minutes to boot, real patching work.</p></div>
+        <div class="ans"><div class="k">◆ Docker's answer</div><p>Containers share the host kernel, so one server runs dozens or hundreds of containers, each starting in seconds with a fraction of the resources.</p></div>
+      </div>
+      <div class="prob reveal">
+        <div class="top"><div class="lbl"><span class="n">03</span><h3>⚒ Slow, inconsistent setup</h3></div>
+          <p>Onboarding meant following a long, error-prone doc — install Postgres 14, this Redis, that Python…</p></div>
+        <div class="ans"><div class="k">◆ Docker's answer</div><p><span class="cmd-inline">docker compose up</span> recreates the entire stack — database, cache, app — identically in one command, in minutes.</p></div>
+      </div>
+      <div class="prob reveal">
+        <div class="top"><div class="lbl"><span class="n">04</span><h3>↗ Inefficient scaling &amp; deployment</h3></div>
+          <p>Scaling a VM app means cloning whole machines; deployments are large and slow.</p></div>
+        <div class="ans"><div class="k">◆ Docker's answer</div><p>Images are small, layered, and cached — shipping a new version moves only the changed layers. Starting another copy is nearly instant.</p></div>
+      </div>
+    </div>
+
+    <!-- density diagram: few heavy VMs vs many light containers -->
+    <div class="figure reveal" style="margin-top:34px">
+      <svg viewBox="0 0 760 392" role="img" aria-label="One physical server fits only a few heavy VMs, each with its own guest OS, but dozens of lightweight containers that share one host kernel">
+        <defs>
+          <linearGradient id="engG" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2496ED"/><stop offset="1" stop-color="#0DB7ED"/></linearGradient>
+        </defs>
+        <g font-family="Segoe UI,sans-serif">
+          <!-- divider -->
+          <line x1="380" y1="40" x2="380" y2="356" stroke="#E4E8EE" stroke-width="2" stroke-dasharray="4 6"/>
+
+          <!-- headers -->
+          <text x="190" y="26" text-anchor="middle" font-size="14" font-weight="800" fill="#b45309">WITH VMs — few &amp; heavy</text>
+          <text x="570" y="26" text-anchor="middle" font-size="14" font-weight="800" fill="#1877cf">WITH DOCKER — many &amp; light</text>
+
+          <!-- ===== left: VMs ===== -->
+          <!-- three VM stacks -->
+          <g>
+            <!-- stack template repeated -->
+            <g>
+              <rect x="48"  y="92" width="86" height="200" rx="10" fill="#fff" stroke="#fed7aa" stroke-width="1.5"/>
+              <rect x="56"  y="102" width="70" height="34" rx="6" fill="#dcebfb"/><text x="91" y="123" text-anchor="middle" font-size="11" font-weight="700" fill="#0D1B2A">App</text>
+              <rect x="56"  y="142" width="70" height="142" rx="6" fill="#fff2e2" stroke="#f6c78a"/><text x="91" y="205" text-anchor="middle" font-size="11.5" font-weight="800" fill="#b45309">Guest</text><text x="91" y="221" text-anchor="middle" font-size="11.5" font-weight="800" fill="#b45309">OS</text><text x="91" y="243" text-anchor="middle" font-size="9.5" font-weight="600" fill="#c98a3d">kernel + libs</text>
+            </g>
+            <g>
+              <rect x="147" y="92" width="86" height="200" rx="10" fill="#fff" stroke="#fed7aa" stroke-width="1.5"/>
+              <rect x="155" y="102" width="70" height="34" rx="6" fill="#dcebfb"/><text x="190" y="123" text-anchor="middle" font-size="11" font-weight="700" fill="#0D1B2A">App</text>
+              <rect x="155" y="142" width="70" height="142" rx="6" fill="#fff2e2" stroke="#f6c78a"/><text x="190" y="205" text-anchor="middle" font-size="11.5" font-weight="800" fill="#b45309">Guest</text><text x="190" y="221" text-anchor="middle" font-size="11.5" font-weight="800" fill="#b45309">OS</text><text x="190" y="243" text-anchor="middle" font-size="9.5" font-weight="600" fill="#c98a3d">kernel + libs</text>
+            </g>
+            <g>
+              <rect x="246" y="92" width="86" height="200" rx="10" fill="#fff" stroke="#fed7aa" stroke-width="1.5"/>
+              <rect x="254" y="102" width="70" height="34" rx="6" fill="#dcebfb"/><text x="289" y="123" text-anchor="middle" font-size="11" font-weight="700" fill="#0D1B2A">App</text>
+              <rect x="254" y="142" width="70" height="142" rx="6" fill="#fff2e2" stroke="#f6c78a"/><text x="289" y="205" text-anchor="middle" font-size="11.5" font-weight="800" fill="#b45309">Guest</text><text x="289" y="221" text-anchor="middle" font-size="11.5" font-weight="800" fill="#b45309">OS</text><text x="289" y="243" text-anchor="middle" font-size="9.5" font-weight="600" fill="#c98a3d">kernel + libs</text>
+            </g>
+          </g>
+          <!-- hypervisor + hardware base -->
+          <rect x="48" y="300" width="284" height="48" rx="10" fill="#0D1B2A"/>
+          <text x="190" y="322" text-anchor="middle" font-size="12.5" font-weight="700" fill="#fff">Hypervisor · Physical server</text>
+          <text x="190" y="338" text-anchor="middle" font-size="10.5" font-weight="600" fill="#9fb2c9">CPU · RAM · Disk</text>
+          <text x="190" y="378" text-anchor="middle" font-size="12" font-weight="700" fill="#5A6472">≈ 3 VMs · GBs each · boot in minutes</text>
+
+          <!-- ===== right: containers ===== -->
+          <!-- 8 lightweight containers, 2 rows -->
+          <g fill="#eaf4ff" stroke="#7fbdf0" stroke-width="1.4">
+            <rect x="437" y="96"  width="62" height="66" rx="8"/>
+            <rect x="505" y="96"  width="62" height="66" rx="8"/>
+            <rect x="573" y="96"  width="62" height="66" rx="8"/>
+            <rect x="641" y="96"  width="62" height="66" rx="8"/>
+            <rect x="437" y="176" width="62" height="66" rx="8"/>
+            <rect x="505" y="176" width="62" height="66" rx="8"/>
+            <rect x="573" y="176" width="62" height="66" rx="8"/>
+            <rect x="641" y="176" width="62" height="66" rx="8"/>
+          </g>
+          <g text-anchor="middle" font-size="10.5" font-weight="700" fill="#1877cf">
+            <text x="468" y="134">app</text><text x="536" y="134">app</text><text x="604" y="134">app</text><text x="672" y="134">app</text>
+            <text x="468" y="214">app</text><text x="536" y="214">app</text><text x="604" y="214">app</text><text x="672" y="214">app</text>
+          </g>
+          <!-- docker engine (shared kernel) + hardware base -->
+          <rect x="428" y="258" width="284" height="26" rx="7" fill="url(#engG)"/>
+          <text x="570" y="275" text-anchor="middle" font-size="11.5" font-weight="800" fill="#fff">Docker Engine — shared host kernel</text>
+          <rect x="428" y="300" width="284" height="48" rx="10" fill="#0D1B2A"/>
+          <text x="570" y="322" text-anchor="middle" font-size="12.5" font-weight="700" fill="#fff">Host OS · Physical server</text>
+          <text x="570" y="338" text-anchor="middle" font-size="10.5" font-weight="600" fill="#9fb2c9">CPU · RAM · Disk</text>
+          <text x="570" y="378" text-anchor="middle" font-size="12" font-weight="700" fill="#5A6472">dozens of containers · MBs each · boot in seconds</text>
+        </g>
+      </svg>
+      <div class="figcap">The same physical server: a handful of heavy VMs — each dragging a full guest OS — or dozens of lightweight containers sharing one host kernel.</div>
+    </div>
+
+    <!-- concrete worked example -->
+    <div class="sec-head reveal" style="margin-top:40px;margin-bottom:20px">
+      <span class="eyebrow" style="margin:0 0 10px">See It In One Example</span>
+      <h2 style="font-size:clamp(22px,2.6vw,28px)">Traffic spikes — you need 5 copies of your API, fast.</h2>
+    </div>
+    <div class="grid g2" style="align-items:start">
+      <div class="card reveal">
+        <div class="icon-badge" style="background:#fff7ed;color:#b45309">🖥️</div>
+        <h3>The VM way</h3>
+        <p style="margin-bottom:14px">Clone a whole machine — a full OS — five times, then configure each one.</p>
+        <div class="codecard">
+          <div class="bar"><span class="dots"><i style="background:#FF5F56"></i><i style="background:#FFBD2E"></i><i style="background:#27C93F"></i></span><span class="fname">provision 5 VMs</span></div>
+          <pre><code><span class="c-com"># clone an 8 GB VM image, 5 times</span>
+<span class="c-com"># wait for each guest OS to boot</span>
+<span class="c-com"># re-run setup on every VM (drift risk)</span>
+<span class="c-com"># ~5 min each · ~40 GB RAM total</span></code></pre>
+        </div>
+      </div>
+      <div class="card reveal">
+        <div class="icon-badge">🐳</div>
+        <h3>The Docker way</h3>
+        <p style="margin-bottom:14px">Start five containers from the <i>same</i> image — one command, no per-copy setup.</p>
+        <div class="codecard">
+          <div class="bar"><span class="dots"><i style="background:#FF5F56"></i><i style="background:#FFBD2E"></i><i style="background:#27C93F"></i></span><span class="fname">scale to 5 instances</span></div>
+          <pre><code><span class="c-key">docker</span> compose up --scale api=5
+
+<span class="c-com"># 5 identical containers</span>
+<span class="c-com"># ~2 s to start · ~250 MB RAM total</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout reveal" style="margin-top:22px">
+      <span class="mark">✦</span>
+      <p><b>Why Docker wins here:</b> every container reuses the host kernel and the shared image layers, so a copy is just another isolated process — not another operating system. Same image, so all five are byte-for-byte identical; nothing to drift, nothing to hand-configure.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CONFIGURATION DRIFT ===================== -->
+<section class="alt" id="drift">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker-row"><span class="eyebrow" style="margin:0">Deep Dive · Configuration Drift</span><span class="pager">12 / 20</span></div>
+      <h2>Why "it works on my machine" happens: drift.</h2>
+      <p class="lead"><b>Drift</b> is when environments that were <i>supposed to be identical</i> gradually become different over time — because each one is changed and maintained independently. It's the single biggest reason code passes in one environment and breaks in the next.</p>
+    </div>
+
+    <p class="drift-note reveal">Day 1 — all three environments are identical</p>
+    <div class="env-base reveal"><b>DEV = TEST = PROD</b><span>Ubuntu</span><span>·</span><span>Java 21</span><span>·</span><span>Library 1.5</span><span>→ everything works ✅</span></div>
+
+    <p class="drift-note reveal">Months later — hand-edited one VM at a time, now divergent</p>
+    <div class="envgrid reveal">
+      <div class="env">
+        <div class="env-h">DEV <span class="env-badge ok">Works ✅</span></div>
+        <ul>
+          <li class="same">Ubuntu</li>
+          <li class="same">Java 21</li>
+          <li class="drift">Library 1.6</li>
+          <li class="drift">OS patch #10</li>
+        </ul>
+      </div>
+      <div class="env">
+        <div class="env-h">TEST <span class="env-badge bad">Breaks ❌</span></div>
+        <ul>
+          <li class="same">Ubuntu</li>
+          <li class="same">Java 21</li>
+          <li class="same">Library 1.5</li>
+          <li class="drift">OS patch #8</li>
+        </ul>
+      </div>
+      <div class="env">
+        <div class="env-h">PROD <span class="env-badge bad">Breaks ❌</span></div>
+        <ul>
+          <li class="same">Ubuntu</li>
+          <li class="drift">Java 17</li>
+          <li class="same">Library 1.5</li>
+          <li class="drift">OS patch #6</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout reveal" style="margin-top:22px;background:#fff1f0;border-color:#f6c9c6;border-left-color:#e5484d">
+      <span class="mark">⚠️</span>
+      <p>Same code, three different results. The environments are no longer configured the same way, so the app that ran in DEV falls over in TEST and PROD.</p>
+    </div>
+
+    <div class="grid g2" style="align-items:start;margin-top:34px">
+      <div class="card reveal">
+        <div class="icon-badge">🛠️</div>
+        <h3>Why it happens with VMs</h3>
+        <p style="margin-bottom:14px">When VMs are hand-configured, someone runs a few commands on one VM — and forgets to run <i>exactly</i> the same ones on the others. Over months, the differences pile up.</p>
+        <div class="codecard">
+          <div class="bar"><span class="dots"><i style="background:#FF5F56"></i><i style="background:#FFBD2E"></i><i style="background:#27C93F"></i></span><span class="fname">on VM #1 — but not #2 or #3…</span></div>
+          <pre><code>sudo apt update
+sudo apt install xyz
+<span class="c-com"># upgrade Java</span>
+<span class="c-com"># change configuration</span>
+<span class="c-com"># install a library</span>
+<span class="c-com"># apply an OS patch</span></code></pre>
+        </div>
+      </div>
+
+      <div class="card reveal">
+        <div class="icon-badge">🐳</div>
+        <h3>Docker's answer</h3>
+        <p style="margin-bottom:14px">Don't configure each environment by hand. Define the environment <b>once</b> in a <code>Dockerfile</code>, build it into one immutable image, and run that <i>same image everywhere</i>.</p>
+        <div class="codecard">
+          <div class="bar"><span class="dots"><i style="background:#FF5F56"></i><i style="background:#FFBD2E"></i><i style="background:#27C93F"></i></span><span class="fname">Dockerfile</span></div>
+          <pre><code><span class="c-key">FROM</span> eclipse-temurin:21
+
+<span class="c-key">COPY</span> app.jar /app/app.jar
+
+<span class="c-key">ENTRYPOINT</span> [<span class="c-str">"java"</span>, <span class="c-str">"-jar"</span>, <span class="c-str">"/app/app.jar"</span>]</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="figure reveal" style="margin-top:28px">
+      <svg viewBox="0 0 760 300" role="img" aria-label="One Docker image built from the Dockerfile is deployed identically to DEV, TEST and PROD">
+        <defs>
+          <marker id="arrowD" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#2496ED"/></marker>
+          <linearGradient id="imgG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2496ED"/><stop offset="1" stop-color="#0DB7ED"/></linearGradient>
+        </defs>
+        <g font-family="Segoe UI,sans-serif">
+          <rect x="270" y="16" width="220" height="106" rx="13" fill="url(#imgG)"/>
+          <text x="380" y="45" text-anchor="middle" font-size="15" font-weight="800" fill="#fff">Docker Image</text>
+          <g text-anchor="middle" font-size="11.5" font-weight="600" fill="#e6f4fc">
+            <text x="380" y="68">Java 21 · Required libraries</text>
+            <text x="380" y="88">Application</text>
+            <text x="380" y="108">Configuration</text>
+          </g>
+          <!-- distributor -->
+          <line x1="380" y1="122" x2="380" y2="150" stroke="#2496ED" stroke-width="2.5"/>
+          <line x1="150" y1="150" x2="610" y2="150" stroke="#2496ED" stroke-width="2.5"/>
+          <line x1="150" y1="150" x2="150" y2="176" stroke="#2496ED" stroke-width="2.5" marker-end="url(#arrowD)"/>
+          <line x1="380" y1="150" x2="380" y2="176" stroke="#2496ED" stroke-width="2.5" marker-end="url(#arrowD)"/>
+          <line x1="610" y1="150" x2="610" y2="176" stroke="#2496ED" stroke-width="2.5" marker-end="url(#arrowD)"/>
+          <!-- env targets -->
+          <g text-anchor="middle">
+            <rect x="50"  y="180" width="200" height="96" rx="12" fill="#f7fdf9" stroke="#bfe6cc"/><text x="150" y="212" font-size="15" font-weight="800" fill="#0D1B2A">DEV</text><text x="150" y="233" font-size="11.5" font-weight="600" fill="#5A6472">same image</text><text x="150" y="258" font-size="12.5" font-weight="800" fill="#128a2b">✓ Works</text>
+            <rect x="280" y="180" width="200" height="96" rx="12" fill="#f7fdf9" stroke="#bfe6cc"/><text x="380" y="212" font-size="15" font-weight="800" fill="#0D1B2A">TEST</text><text x="380" y="233" font-size="11.5" font-weight="600" fill="#5A6472">same image</text><text x="380" y="258" font-size="12.5" font-weight="800" fill="#128a2b">✓ Works</text>
+            <rect x="510" y="180" width="200" height="96" rx="12" fill="#f7fdf9" stroke="#bfe6cc"/><text x="610" y="212" font-size="15" font-weight="800" fill="#0D1B2A">PROD</text><text x="610" y="233" font-size="11.5" font-weight="600" fill="#5A6472">same image</text><text x="610" y="258" font-size="12.5" font-weight="800" fill="#128a2b">✓ Works</text>
+          </g>
+        </g>
+      </svg>
+      <div class="figcap">One image, built once, deployed byte-for-byte identically — DEV, TEST, and PROD can no longer drift apart.</div>
+    </div>
+
+    <div class="callout reveal" style="margin-top:22px">
+      <span class="mark">✦</span>
+      <p><b>In one line:</b> drift is environments slowly becoming different because they're independently changed. An immutable image removes the "independently changed" part — so there's nothing left to drift.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CAPABILITY MATRIX ===================== -->
+<section>
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker-row"><span class="eyebrow" style="margin:0">Capability Matrix</span><span class="pager">13 / 20</span></div>
+      <h2>They are complementary, not enemies.</h2>
+    </div>
+    <div class="tablewrap reveal">
+      <table>
+        <thead><tr><th>Capability</th><th>VMs</th><th class="col-docker">Docker</th></tr></thead>
+        <tbody>
+          <tr><td>Isolate workloads on one machine</td><td><span class="yes">✓ Yes</span></td><td class="col-docker"><span class="yes">✓ Yes</span></td></tr>
+          <tr><td>Guaranteed consistent app environment everywhere</td><td><span class="no">✗ drifts</span></td><td class="col-docker"><span class="yes">✓ image is immutable</span></td></tr>
+          <tr><td>Lightweight / high density per server</td><td><span class="no">✗ —</span></td><td class="col-docker"><span class="yes">✓ high</span></td></tr>
+          <tr><td>Start in seconds</td><td><span class="no">✗ minutes</span></td><td class="col-docker"><span class="yes">✓ seconds</span></td></tr>
+          <tr><td>Package app + dependencies as one shippable unit</td><td><span class="no">✗ —</span></td><td class="col-docker"><span class="yes">✓ image</span></td></tr>
+          <tr><td>Run a different OS kernel (e.g. Windows on Linux)</td><td><span class="yes">✓ Yes</span></td><td class="col-docker"><span class="no">✗ shares host kernel</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout reveal" style="margin-top:22px">
+      <span class="mark">✦</span>
+      <p>In the cloud today, containers usually run <b>inside</b> VMs: the VM provides strong hardware-level isolation and the OS, while Docker provides fast, portable, consistent app packaging on top.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SECTION 03 DIVIDER ===================== -->
+<div class="divider" id="ecosystem">
+  <div class="orb"></div>
+  <div class="wrap reveal">
+    <div class="step">Section 03 / 03</div>
+    <h2>Ecosystem &amp; Operations</h2>
+    <p>Who builds what, the alternatives to Docker, and how Kubernetes fits in without replacing it.</p>
+  </div>
+</div>
+
+<!-- ===================== HISTORY TIMELINE ===================== -->
+<section id="history">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker-row"><span class="eyebrow" style="margin:0">A Brief History</span><span class="pager">15 / 20</span></div>
+      <h2>From mainframe VMs to Docker to Podman.</h2>
+      <p class="lead">Containers didn't appear overnight. The core ideas — isolation, resource limits, and packaging — were invented across five decades, from 1960s mainframes to today's rootless engines. Here is the lineage.</p>
+    </div>
+
+    <div class="tl-legend reveal">
+      <span class="tl-tag vm">Virtualization</span>
+      <span class="tl-tag anc">Container ancestor</span>
+      <span class="tl-tag docker">Docker</span>
+      <span class="tl-tag std">Standards / Orchestration</span>
+      <span class="tl-tag pod">Podman</span>
+    </div>
+
+    <div class="timeline" id="timeline">
+      <div class="tl-spine"><span class="tl-fill" id="tlFill"></span></div>
+
+      <div class="tl-item left vm">
+        <div class="tl-dot"></div>
+        <div class="tl-card">
+          <button class="tl-info" type="button" aria-label="Deep dive: IBM CP-40 / CP-67">i</button>
+          <div class="tl-detail">
+            <h4>The problem in the 1960s</h4>
+            <p>A mainframe cost millions and ran one program at a time. IBM's research lab in Cambridge wanted many users to share one machine as if each had their own computer — the birth of <b>time-sharing</b> and <b>virtualization</b>.</p>
+            <h4>The key idea: the Virtual Machine Monitor</h4>
+            <p>CP-40 (and then CP-67 on the System/360-67) introduced a control program that gave each user a complete <em>virtual</em> copy of the hardware:</p>
+            <pre>            Real Hardware (S/360)
+                    |
+             Control Program (CP)   ← the first hypervisor
+        +-----------+-----------+
+     Virtual      Virtual      Virtual
+     Machine 1    Machine 2    Machine 3
+     (CMS)        (CMS)        (CMS)</pre>
+            <h4>Why it mattered</h4>
+            <p>Each VM had its own virtual CPU, memory and devices, fully isolated from the others. This is the ancestor of every hypervisor today (VMware, KVM, Hyper-V) — and the earliest form of "running isolated environments on one computer."</p>
+            <div class="info-note"><p>Containers came decades later and take a different route (share the kernel instead of emulating hardware), but the <em>goal</em> — isolated environments on one machine — was born here.</p></div>
+          </div>
+          <div class="tl-year">1964–1967</div>
+          <span class="tl-tag vm">Virtualization</span>
+          <h3>IBM CP-40 / CP-67 — the first virtual machines</h3>
+          <p>IBM's research systems ran multiple "virtual" copies of a mainframe at once, letting many users time-share one machine. This is where virtualization — and the whole idea of running isolated environments on one computer — was born.</p>
+        </div>
+      </div>
+
+      <div class="tl-item right vm">
+        <div class="tl-dot"></div>
+        <div class="tl-card">
+          <button class="tl-info" type="button" aria-label="Deep dive: IBM VM/370">i</button>
+          <div class="tl-detail">
+            <h4>From research to product</h4>
+            <p>VM/370 turned the CP/CMS research into a supported commercial operating system for the System/370. Each user logged into a full virtual System/370 running the lightweight <b>CMS</b> single-user OS.</p>
+            <pre>          System/370 hardware
+                  |
+             VM/370 (CP)
+        +---------+---------+
+     Virtual   Virtual   Virtual
+     S/370     S/370     S/370
+     + CMS     + CMS     + a guest OS</pre>
+            <h4>What made it powerful</h4>
+            <p>A virtual machine was so faithful that you could even run <em>another copy of VM/370 inside a VM</em> (nested virtualization). Businesses used it to run test and production systems side by side, and to keep old software running on new hardware.</p>
+            <div class="info-note"><p>VM/370's descendants (z/VM) still run on IBM mainframes today — over 50 years of continuous virtualization lineage.</p></div>
+          </div>
+          <div class="tl-year">1972</div>
+          <span class="tl-tag vm">Virtualization</span>
+          <h3>IBM VM/370 goes commercial</h3>
+          <p>The VM/370 operating system gave each user a complete virtual System/370. Virtualization moved from research to a mainstream, supported mainframe product that businesses relied on for decades.</p>
+        </div>
+      </div>
+
+      <div class="tl-item left anc">
+        <div class="tl-dot"></div>
+        <div class="tl-card">
+          <button class="tl-info" type="button" aria-label="Deep dive: chroot">i</button>
+          <div class="tl-detail">
+            <h4>1. Normal Linux filesystem view</h4>
+            <p>Imagine your machine has:</p>
+            <pre>/
+├── bin/
+├── etc/
+├── home/
+│   └── pk/
+├── lib/
+├── tmp/
+├── usr/
+│   ├── bin/
+│   └── lib/
+└── var/</pre>
+            <p>Normally, when a process does <code>open("/etc/passwd", O_RDONLY)</code>, the kernel interprets <code>/etc/passwd</code> relative to the system's root, so the process sees the host filesystem.</p>
+
+            <h4>2. What does chroot do?</h4>
+            <p>Suppose we create <code>/myroot/</code> with its own <code>bin/ etc/ lib/ app/</code>. Then calling <code>chroot("/myroot")</code> changes the process's root directory. From that process's perspective <code>/</code> now corresponds to <code>/myroot/</code>, so:</p>
+            <pre>open("/etc/config", ...);   →  resolves to  /myroot/etc/config
+                            (not the host's /etc/config)</pre>
+            <p>That's the fundamental idea.</p>
+
+            <h4>3. Simple example</h4>
+            <pre>/tmp/myroot/
+├── etc/
+│   └── myconfig
+└── app/
+    └── hello
+
+$ sudo chroot /tmp/myroot /app/hello</pre>
+            <p>Inside the process, <code>/</code> is now <code>/tmp/myroot</code>. So <code>cat /etc/myconfig</code> actually reads <code>/tmp/myroot/etc/myconfig</code>. The process thinks <code>/etc/myconfig</code>, but the host kernel resolves it underneath.</p>
+
+            <h4>4. What is actually happening?</h4>
+            <p>A process has filesystem-related state maintained by the kernel:</p>
+            <pre>Process
+   |
+   +-- current working directory
+   +-- root directory
+   +-- file descriptors</pre>
+            <p>Normally <code>process.root = /</code>. After <code>chroot("/tmp/myroot")</code>, conceptually <code>process.root = /tmp/myroot</code>, and all pathname resolution uses that root:</p>
+            <pre>Process asks for  /etc/passwd
+        |
+        v   kernel pathname resolution
+process root = /tmp/myroot
+        |
+        v
+/tmp/myroot/etc/passwd</pre>
+            <p>The application itself doesn't need to know that <code>/</code> has been changed.</p>
+
+            <h4>5. Why was this useful?</h4>
+            <p>You can construct a miniature filesystem containing only what an app needs — <code>bin/sh</code>, <code>etc/app.conf</code>, <code>lib/libc.so</code>, <code>app/program</code> — then run <code>chroot app-root /app/program</code>. The application sees only that tree rather than the entire host filesystem. This is the beginning of the filesystem-isolation idea used by containers.</p>
+
+            <h4>6. But there is a major security problem</h4>
+            <p>chroot does <em>not</em> mean "this process is securely trapped inside this directory." It means more narrowly: "for normal pathname resolution, use this directory as the process's filesystem root."</p>
+            <p>A sufficiently privileged process can potentially escape. chroot traditionally requires root privileges; a classic escape involves changing the working directory before calling chroot and then using directory-traversal / file-descriptor tricks to reach the old filesystem.</p>
+            <div class="info-note"><p><b>chroot ≠ security sandbox.</b> This distinction is extremely important.</p></div>
+
+            <h4>7. Why chroot isn't enough for containers</h4>
+            <p>Run <code>chroot /container-root /bin/bash</code> and the process has a different filesystem root — but <code>ps aux</code> can still see host processes, <code>ip addr</code> still sees host interfaces, and <code>free -m</code> still sees host memory.</p>
+            <pre>chroot
+  |
+  +-- isolates filesystem view
+  X-- doesn't isolate processes
+  X-- doesn't isolate network
+  X-- doesn't isolate users
+  X-- doesn't limit CPU/memory</pre>
+
+            <h4>8. Linux namespaces extend the idea</h4>
+            <table><thead><tr><th>Namespace</th><th>Isolates</th></tr></thead><tbody>
+            <tr><td>Mount</td><td>Filesystem mount view</td></tr>
+            <tr><td>PID</td><td>Process IDs</td></tr>
+            <tr><td>Network</td><td>Interfaces / routes</td></tr>
+            <tr><td>UTS</td><td>Hostname</td></tr>
+            <tr><td>IPC</td><td>Inter-process communication</td></tr>
+            <tr><td>User</td><td>User / group IDs</td></tr>
+            <tr><td>Cgroup</td><td>Cgroup hierarchy</td></tr>
+            <tr><td>Time</td><td>Time-related state</td></tr>
+            </tbody></table>
+            <pre>Container Process
+       |
+       +-- Mount / PID / Network / User / UTS / IPC namespaces
+       +-- cgroups
+       +-- capabilities
+       +-- seccomp</pre>
+            <p>That's why a container is much more than chroot.</p>
+
+            <h4>9. Mount namespace + chroot</h4>
+            <p>Modern runtimes create a separate mount namespace so the container gets its own view of mounted filesystems, then establish a root filesystem and change the process's root — traditionally with <code>chroot</code> or, more commonly today, <code>pivot_root</code>. The key combination: <b>mount namespace + isolated root filesystem = container filesystem view.</b></p>
+
+            <h4>10. PID namespace</h4>
+            <pre>Host                    Container
+PID 2000  ───────────>  PID 1  (application)
+PID 2001  ───────────>  PID 2  (worker)
+PID 2002  ───────────>  PID 3  (child)</pre>
+            <p>The application believes it is PID 1, while the host kernel knows it as PID 2000. chroot cannot provide this.</p>
+
+            <h4>11. Network namespace</h4>
+            <pre>Host namespace          Container namespace
+eth0 10.0.0.10   ⇄      eth0 172.17.0.2</pre>
+            <p>The container gets its own interfaces, routing table, IP addresses, firewall rules and ports. chroot → filesystem isolation; network namespace → network isolation.</p>
+
+            <h4>12. User namespace</h4>
+            <pre>Container             Host
+UID 0   ───────────>  UID 100000
+UID 1   ───────────>  UID 100001
+UID 2   ───────────>  UID 100002</pre>
+            <p>A process can be UID 0 (root) <em>inside</em> the container while mapped to an unprivileged host UID. So container root ≠ host root — a significant isolation improvement.</p>
+
+            <h4>13. cgroups solve a different problem</h4>
+            <p>Namespaces answer <em>"what can the process see?"</em> cgroups answer <em>"how much resource can it consume?"</em> — e.g. CPU: 2 cores, RAM: 1 GB, PIDs: 100, I/O limits. <b>Namespaces → isolation; cgroups → resource control.</b></p>
+
+            <h4>14. Capabilities</h4>
+            <p>Linux splits the all-powerful root into fine-grained capabilities (<code>CAP_NET_ADMIN</code>, <code>CAP_SYS_ADMIN</code>, <code>CAP_CHOWN</code>, <code>CAP_KILL</code>, <code>CAP_NET_RAW</code>…). A container can run as root inside its namespace with the dangerous capabilities removed, reducing the blast radius of a compromised app.</p>
+
+            <h4>15. seccomp</h4>
+            <pre>Application → system call → seccomp filter
+                              +-- allowed → kernel
+                              +-- blocked → denied</pre>
+            <p>The runtime restricts which syscalls the process may make. The full isolation stack: <b>namespaces</b> (what it sees) + <b>cgroups</b> (how much) + <b>capabilities</b> (what it can do) + <b>seccomp</b> (which syscalls).</p>
+
+            <h4>16. How Docker fits into this</h4>
+            <p><code>docker run nginx</code> isn't simply <code>chroot /some/dir nginx</code>. A modern runtime roughly: (1) prepares a root filesystem, (2) creates namespaces, (3) configures mounts, (4) networking, (5) cgroups, (6) capabilities, (7) seccomp, (8) sets the container root, (9) executes the app.</p>
+            <pre>                 Host Kernel
+       +-------------+-------------+
+    Container A   Container B   Container C
+     nginx          java          redis
+       +-------------+-------------+
+                 shared kernel</pre>
+            <p>Containers generally share the host kernel. A VM doesn't.</p>
+
+            <h4>17. Container vs VM</h4>
+            <pre>Container                 VM
+Hardware                  Hardware
+  Host OS                   Hypervisor
+  Linux Kernel              +-- VM1 (Guest OS)
+  +-- Container A           +-- VM2 (Guest OS)
+  +-- Container B</pre>
+            <p>Containers are lighter because they don't require a complete guest kernel per environment.</p>
+
+            <h4>18. Why chroot is historically important</h4>
+            <pre>chroot
+  → BSD jails / stronger isolation
+  → Linux namespaces (mount, PID, network, user, IPC)
+  → cgroups
+  → capabilities + seccomp + LSMs
+  → modern containers (Docker, containerd, CRI-O, Kubernetes)</pre>
+            <p>Calling chroot an ancestor of containers is reasonable historically — but don't equate the two.</p>
+
+            <h4>The mental model to remember</h4>
+            <pre>          Container
+    +---------+---------+
+ What see?  How much?  What can do?
+ Namespaces  cgroups   Capabilities
+    |
+ filesystem/processes/network/users
+    +-- chroot / rootfs</pre>
+            <div class="info-note"><p>chroot changes a process's filesystem root, so absolute paths like <code>/etc/config</code> resolve relative to a different tree. It provides filesystem-view isolation but is not, by itself, a security boundary. Modern containers build on the same idea and add namespaces (process/network/user), cgroups (resources), and capabilities + seccomp (privilege/syscall limits) on a dedicated root filesystem.</p></div>
+          </div>
+          <div class="tl-year">1979</div>
+          <span class="tl-tag anc">Container ancestor</span>
+          <h3>chroot arrives in Unix V7</h3>
+          <p>The <code>chroot</code> system call could confine a process to a subtree of the filesystem — the earliest ancestor of containers. It shipped in BSD in 1982 and is still used to build isolated environments today.</p>
+        </div>
+      </div>
+
+      <div class="tl-item right vm">
+        <div class="tl-dot"></div>
+        <div class="tl-card">
+          <button class="tl-info" type="button" aria-label="Deep dive: VMware">i</button>
+          <div class="tl-detail">
+            <h4>Why x86 was "impossible" to virtualize</h4>
+            <p>The x86 instruction set had ~17 privileged instructions that failed <em>silently</em> instead of trapping when run in user mode — so a classic hypervisor couldn't cleanly intercept them.</p>
+            <h4>VMware's breakthrough: binary translation</h4>
+            <p>VMware Workstation (1999) scanned guest kernel code at runtime and rewrote the problematic instructions on the fly, while letting safe user-mode code run natively at full speed.</p>
+            <pre>Guest OS code
+     |
+ binary translator  ← rewrites unsafe privileged instrs
+     |
+ runs on real x86 CPU (safe code runs natively)</pre>
+            <h4>Then it went to the data center</h4>
+            <p>ESX Server (2001) was a bare-metal (type-1) hypervisor installed directly on the hardware — no host OS underneath:</p>
+            <pre>Type 2 (Workstation)      Type 1 (ESX)
+  Hardware                  Hardware
+  Host OS                   Hypervisor
+  Hypervisor app            +-- VM
+  +-- VM                    +-- VM</pre>
+            <div class="info-note"><p>Later, Intel VT-x and AMD-V added hardware support that made privileged instructions trap properly — so binary translation became unnecessary and modern hypervisors (KVM, Hyper-V) rely on the CPU directly.</p></div>
+          </div>
+          <div class="tl-year">1999</div>
+          <span class="tl-tag vm">Virtualization</span>
+          <h3>VMware brings VMs to the PC</h3>
+          <p>VMware Workstation cracked the hard problem of virtualizing x86, putting virtual machines on commodity hardware. ESX Server (2001) took VMs into the data center and launched the modern virtualization industry.</p>
+        </div>
+      </div>
+
+      <div class="tl-item left anc">
+        <div class="tl-dot"></div>
+        <div class="tl-card">
+          <button class="tl-info" type="button" aria-label="Deep dive: FreeBSD Jails">i</button>
+          <div class="tl-detail">
+            <h4>chroot, but a real boundary</h4>
+            <p>FreeBSD Jails (introduced with the <code>jail(2)</code> syscall) fixed chroot's biggest weakness: escape. A jail confines processes to a filesystem subtree <em>and</em> restricts what they can see and do system-wide.</p>
+            <h4>What a jail isolates</h4>
+            <pre>Jail
+ +-- own root filesystem   (like chroot)
+ +-- own set of processes  (can't see host PIDs)
+ +-- own users / root      (jailed root ≠ real root)
+ +-- bound to specific IP address(es)
+ X-- cannot load kernel modules, reboot, see other jails</pre>
+            <h4>Why it's a direct container ancestor</h4>
+            <p>A jailed <code>root</code> is powerful inside the jail but nearly harmless outside it — the exact model containers use today. Jails delivered OS-level isolation (one shared kernel, many isolated environments) years before Linux had the pieces to match it.</p>
+            <div class="info-note"><p>Solaris Zones (2004) and later Linux namespaces + cgroups are the same idea, refined and split into composable kernel primitives.</p></div>
+          </div>
+          <div class="tl-year">2000</div>
+          <span class="tl-tag anc">Container ancestor</span>
+          <h3>FreeBSD Jails — real OS-level isolation</h3>
+          <p>Jails partitioned a single FreeBSD system into isolated mini-environments, each with its own files, users, and network. It's a direct conceptual parent of the Linux containers we use now.</p>
+        </div>
+      </div>
+
+      <div class="tl-item right vm">
+        <div class="tl-dot"></div>
+        <div class="tl-card">
+          <button class="tl-info" type="button" aria-label="Deep dive: Xen and Solaris Zones">i</button>
+          <div class="tl-detail">
+            <h4>Xen — paravirtualization (2003)</h4>
+            <p>Instead of expensively emulating hardware, Xen modified the guest OS to <em>cooperate</em> with the hypervisor via "hypercalls." This paravirtualization was far faster than binary translation on the x86 of the day.</p>
+            <pre>        Xen Hypervisor (bare metal)
+                |
+   +------------+------------+
+  Dom0 (control)   DomU    DomU   (guest OSes)</pre>
+            <p>Xen powered the first big public clouds — including the original Amazon EC2.</p>
+            <h4>Solaris Zones / Containers (2004–05)</h4>
+            <p>On the container side of the family, Sun's Zones partitioned one Solaris kernel into many isolated environments, adding fine-grained <b>resource controls</b> (CPU/memory caps) — a preview of what Linux cgroups would later provide.</p>
+            <div class="info-note"><p>Two branches advancing at once: Xen matured full-machine <em>virtualization</em>, while Zones proved <em>OS-level isolation</em> at enterprise scale.</p></div>
+          </div>
+          <div class="tl-year">2003–2005</div>
+          <span class="tl-tag vm">Virtualization</span>
+          <h3>Xen &amp; Solaris Zones mature the field</h3>
+          <p>The open-source Xen hypervisor (2003) powered the first big clouds, while Solaris Containers/Zones (2004–05) proved OS-level isolation at enterprise scale — pushing both the VM and container ideas forward.</p>
+        </div>
+      </div>
+
+      <div class="tl-item left anc">
+        <div class="tl-dot"></div>
+        <div class="tl-card">
+          <button class="tl-info" type="button" aria-label="Deep dive: cgroups and namespaces">i</button>
+          <div class="tl-detail">
+            <h4>Two missing ingredients arrive in Linux</h4>
+            <p>Containers need answers to two separate questions. Linux got a dedicated primitive for each:</p>
+            <table><thead><tr><th>Mechanism</th><th>Answers</th></tr></thead><tbody>
+            <tr><td>Namespaces</td><td>What can a process <em>see</em>?</td></tr>
+            <tr><td>cgroups</td><td>How much can it <em>use</em>?</td></tr>
+            </tbody></table>
+            <h4>cgroups (control groups)</h4>
+            <p>Started by Google engineers as "process containers," merged into the kernel in 2008. cgroups cap and account CPU, memory, block-I/O and the number of PIDs per group of processes:</p>
+            <pre>cgroup: web-app
+  cpu.max   = 2 cores
+  memory.max = 1 GB
+  pids.max  = 100</pre>
+            <h4>Namespaces</h4>
+            <p>Added incrementally (mount, PID, network, IPC, UTS, user…). Each gives a process its own private view of one kind of global resource — its own process tree, its own network stack, its own hostname.</p>
+            <div class="info-note"><p>Namespaces + cgroups are the raw kernel features. LXC, then Docker, packaged them into something usable.</p></div>
+          </div>
+          <div class="tl-year">2006–2008</div>
+          <span class="tl-tag anc">Container ancestor</span>
+          <h3>cgroups &amp; namespaces land in Linux</h3>
+          <p>Google engineers built "process containers" — later renamed <b>cgroups</b> — to cap CPU and memory per process; it merged into the Linux kernel in 2008. Combined with namespaces, Linux finally had the raw ingredients for containers.</p>
+        </div>
+      </div>
+
+      <div class="tl-item right anc">
+        <div class="tl-dot"></div>
+        <div class="tl-card">
+          <button class="tl-info" type="button" aria-label="Deep dive: LXC">i</button>
+          <div class="tl-detail">
+            <h4>Gluing the kernel pieces together</h4>
+            <p>LXC (Linux Containers) was the first widely used userspace tool that combined namespaces + cgroups into a working "container" with a single set of tools.</p>
+            <pre>LXC
+ +-- namespaces  → isolated view (PID, net, mount, ...)
+ +-- cgroups     → resource limits
+ +-- rootfs      → the container's filesystem
+ = a running Linux container</pre>
+            <h4>What LXC gave you</h4>
+            <p>Something close to a lightweight VM: a full init system and multiple processes, isolated on the host kernel — no guest OS to boot.</p>
+            <h4>The gap it left</h4>
+            <p>LXC was low-level and system-specific. There was <em>no standard way to package, version and share</em> a container — you couldn't easily hand someone "the exact same environment." That missing packaging layer is precisely the gap Docker filled in 2013.</p>
+            <div class="info-note"><p>Docker's first releases actually ran <em>on top of</em> LXC before replacing it with its own <code>libcontainer</code>.</p></div>
+          </div>
+          <div class="tl-year">2008</div>
+          <span class="tl-tag anc">Container ancestor</span>
+          <h3>LXC — the first native Linux containers</h3>
+          <p>LXC (Linux Containers) glued cgroups and namespaces into usable containers. It worked, but stayed low-level and hard to share — there was no easy way to package and ship an app.</p>
+        </div>
+      </div>
+
+      <div class="tl-item left docker">
+        <div class="tl-dot"></div>
+        <div class="tl-card">
+          <button class="tl-info" type="button" aria-label="Deep dive: Docker is born">i</button>
+          <div class="tl-detail">
+            <h4>The killer feature: the image</h4>
+            <p>The kernel primitives existed for years. Docker's insight was <b>packaging</b>: a portable, versioned, layered <b>image</b> you build once and run identically anywhere.</p>
+            <pre>Layered image (copy-on-write)
+  Layer 4  your app code
+  Layer 3  pip install deps
+  Layer 2  apt-get install python
+  Layer 1  base OS (e.g. debian)
+  ── layers are cached & shared between images ──</pre>
+            <h4>Build once, run anywhere</h4>
+            <p>A <code>Dockerfile</code> describes the build; the resulting image runs the same on a laptop, CI, and production — ending "works on my machine."</p>
+            <pre>Dockerfile → docker build → image → docker run → container</pre>
+            <h4>Why it exploded</h4>
+            <p>Docker added a great CLI, a build system, and <b>Docker Hub</b> — a registry to push and pull images by name. Containers went from an expert-only kernel feature to an everyday developer tool. Announced by Solomon Hykes at PyCon 2013, out of the dotCloud PaaS.</p>
+            <div class="info-note"><p>Early Docker used LXC as its execution backend; it later swapped to its own <code>libcontainer</code> (2014), which became the basis of the OCI runtime spec.</p></div>
+          </div>
+          <div class="tl-year">2013</div>
+          <span class="tl-tag docker">Docker</span>
+          <h3>Docker is born</h3>
+          <p>Solomon Hykes unveils Docker at PyCon (out of the dotCloud PaaS). Built at first on LXC, it added the killer feature: portable, layered <b>images</b> you build once and run anywhere. Containers went from arcane to everyday.</p>
+        </div>
+      </div>
+
+      <div class="tl-item right docker">
+        <div class="tl-dot"></div>
+        <div class="tl-card">
+          <button class="tl-info" type="button" aria-label="Deep dive: Docker 1.0 and Kubernetes">i</button>
+          <div class="tl-detail">
+            <h4>Docker 1.0 — production ready</h4>
+            <p>Docker declared its API and format stable, and replaced LXC with its own <code>libcontainer</code>, talking to the kernel directly instead of through a third-party tool.</p>
+            <h4>Kubernetes — the outer loop</h4>
+            <p>Docker runs containers well on <em>one</em> machine. But production means many machines, restarts, scaling and networking. Google open-sourced <b>Kubernetes</b> (based on its internal "Borg") to orchestrate containers across a cluster.</p>
+            <pre>Docker  = inner loop   → build & run a container here
+Kubernetes = outer loop → schedule, scale, heal
+                           containers across many nodes</pre>
+            <pre>        Kubernetes control plane
+     +----------+----------+
+   Node 1     Node 2     Node 3
+   [pods]     [pods]     [pods]   ← containers run inside pods</pre>
+            <div class="info-note"><p>They are different layers, not competitors. Kubernetes schedules work; a container runtime (containerd, CRI-O) actually runs the containers on each node.</p></div>
+          </div>
+          <div class="tl-year">2014</div>
+          <span class="tl-tag docker">Docker</span>
+          <h3>Docker 1.0 &amp; Kubernetes</h3>
+          <p>Docker hits production-ready 1.0 and swaps LXC for its own <code>libcontainer</code>. The same year, Google announces <b>Kubernetes</b> to orchestrate containers across clusters — the outer loop to Docker's inner loop.</p>
+        </div>
+      </div>
+
+      <div class="tl-item left std">
+        <div class="tl-dot"></div>
+        <div class="tl-card">
+          <button class="tl-info" type="button" aria-label="Deep dive: OCI and CNCF">i</button>
+          <div class="tl-detail">
+            <h4>Avoiding vendor lock-in</h4>
+            <p>As containers took off, the industry needed guarantees that an image built by one tool would run on another. Two bodies formed in 2015:</p>
+            <h4>Open Container Initiative (OCI)</h4>
+            <p>Defines vendor-neutral specifications so tools interoperate:</p>
+            <pre>OCI specs
+ +-- image-spec    → how an image is laid out (layers, config)
+ +-- runtime-spec  → how to run a container from a rootfs
+ +-- distribution-spec → how registries serve images</pre>
+            <p>Docker donated its image format and the <code>runc</code> runtime as the reference implementations.</p>
+            <h4>CNCF (Cloud Native Computing Foundation)</h4>
+            <p>A neutral home (under the Linux Foundation) to steward cloud-native projects — Kubernetes, containerd, Prometheus, and many more.</p>
+            <div class="info-note"><p>From here on, "container image" means an <em>OCI</em> image — interchangeable across Docker, Podman, containerd, CRI-O and Kubernetes.</p></div>
+          </div>
+          <div class="tl-year">2015</div>
+          <span class="tl-tag std">Standards</span>
+          <h3>OCI &amp; CNCF standardize everything</h3>
+          <p>The <b>Open Container Initiative</b> defines vendor-neutral image and runtime specs, and the <b>CNCF</b> forms to steward cloud-native projects. From here on, container images are interchangeable across tools.</p>
+        </div>
+      </div>
+
+      <div class="tl-item right std">
+        <div class="tl-dot"></div>
+        <div class="tl-card">
+          <button class="tl-info" type="button" aria-label="Deep dive: containerd">i</button>
+          <div class="tl-detail">
+            <h4>Splitting Docker into layers</h4>
+            <p>Docker extracted its core runtime, <b>containerd</b>, and donated it to the CNCF. "Docker" the product now sits on top of shared, standard infrastructure:</p>
+            <pre>docker CLI
+     |
+ dockerd (daemon: build, images, networks)
+     |
+ containerd  (manages container lifecycle, images)   ← CNCF
+     |
+ runc  (OCI runtime: actually creates the container)  ← OCI
+     |
+ Linux kernel (namespaces, cgroups)</pre>
+            <h4>Why the split matters</h4>
+            <p>Kubernetes talks to containerd directly through the <b>CRI</b> (Container Runtime Interface) — it doesn't need the full Docker daemon. So the low-level engine that actually runs containers is now shared by Docker <em>and</em> Kubernetes.</p>
+            <div class="info-note"><p>This is why Kubernetes was able to "deprecate Docker" (the dockershim) in 2020 without breaking anything — it kept using containerd underneath, and your OCI images ran unchanged.</p></div>
+          </div>
+          <div class="tl-year">2016–2017</div>
+          <span class="tl-tag std">Standards</span>
+          <h3>containerd becomes shared infrastructure</h3>
+          <p>Docker extracts its core runtime, <b>containerd</b>, and donates it to the CNCF. The low-level engine that actually runs containers is now shared industry infrastructure — used by Docker <i>and</i> Kubernetes.</p>
+        </div>
+      </div>
+
+      <div class="tl-item left pod">
+        <div class="tl-dot"></div>
+        <div class="tl-card">
+          <button class="tl-info" type="button" aria-label="Deep dive: Podman">i</button>
+          <div class="tl-detail">
+            <h4>Removing the daemon</h4>
+            <p>Docker relies on a long-running root daemon (<code>dockerd</code>) that every command talks to — a single privileged process and a single point of failure. Podman (Red Hat) is <b>daemonless</b>: each <code>podman</code> command forks the container directly (via <code>conmon</code> + <code>runc/crun</code>).</p>
+            <pre>Docker              Podman
+ docker CLI          podman CLI
+    |                   |  (no daemon)
+ dockerd (root)      fork container directly
+    |                   |
+ containerd/runc     conmon + crun</pre>
+            <h4>Rootless containers</h4>
+            <p>Using <b>user namespaces</b>, Podman lets an ordinary user run containers where in-container <code>root</code> maps to their unprivileged host UID — so a container breakout doesn't yield host root.</p>
+            <h4>Drop-in compatible</h4>
+            <p>Podman runs the same OCI images and mirrors the Docker CLI so closely that <code>alias docker=podman</code> often just works.</p>
+            <div class="info-note"><p>Same images, same commands — the choice of engine (Docker vs Podman) no longer dictates your images.</p></div>
+          </div>
+          <div class="tl-year">2018–2019</div>
+          <span class="tl-tag pod">Podman</span>
+          <h3>Podman 1.0 — daemonless &amp; rootless</h3>
+          <p>Red Hat ships <b>Podman 1.0</b> (Jan 2019): a Docker-compatible engine with <i>no background daemon</i> and the ability to run containers <i>without root</i>. A security-focused alternative that runs the exact same OCI images.</p>
+        </div>
+      </div>
+
+      <div class="tl-item right pod">
+        <div class="tl-dot"></div>
+        <div class="tl-card">
+          <button class="tl-info" type="button" aria-label="Deep dive: rootless and interchangeable">i</button>
+          <div class="tl-detail">
+            <h4>Rootless becomes the default expectation</h4>
+            <p>Running containers without root is now standard practice, not a niche security feature. Both Docker (rootless mode) and Podman support it, backed by user namespaces and tools like <code>slirp4netns</code>/<code>pasta</code> for unprivileged networking.</p>
+            <h4>Interchangeable by design</h4>
+            <pre>          OCI image (built by anyone)
+     +----------+----------+----------+
+   Docker     Podman    containerd   CRI-O
+     |           |           |          |
+     +-----------+-----------+----------+
+              same container runs</pre>
+            <p>Docker Desktop and Podman Desktop give the same GUI/CLI experience across Windows, macOS and Linux. You pick the tool that fits your policy; the image and the running container stay identical.</p>
+            <div class="info-note"><p>The through-line of the whole timeline: isolation, resource limits and packaging — now standardized (OCI), safer by default (rootless), and portable across every major engine.</p></div>
+          </div>
+          <div class="tl-year">2022 → today</div>
+          <span class="tl-tag pod">Podman</span>
+          <h3>Rootless &amp; interchangeable is the norm</h3>
+          <p>Podman Desktop arrives and rootless containers become standard practice. Docker and Podman both build and run the same OCI images — you pick the tool, and the containers stay interchangeable.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ===================== WHO BUILDS WHAT ===================== -->
+<section>
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker-row"><span class="eyebrow" style="margin:0">Who Builds What</span><span class="pager">16 / 20</span></div>
+      <h2>A mature field on the VM side; an OCI-standardised field on the container side.</h2>
+    </div>
+    <div class="grid g2" style="align-items:start">
+      <div class="card reveal">
+        <h3 style="margin-bottom:4px">Virtualization providers</h3>
+        <p style="margin-bottom:14px;color:var(--muted-2);font-size:13px">Mature, many vendors</p>
+        <div class="vendor"><b>VMware</b><span>vSphere / ESXi (enterprise standard)</span></div>
+        <div class="vendor"><b>Microsoft</b><span>Hyper-V (built into Windows)</span></div>
+        <div class="vendor"><b>Oracle</b><span>VirtualBox (free, popular for desktops)</span></div>
+        <div class="vendor"><b>KVM/QEMU</b><span>open-source Linux hypervisor powering most clouds</span></div>
+        <div class="vendor"><b>Citrix</b><span>XenServer</span></div>
+        <div class="vendor"><b>Cloud VMs</b><span>AWS EC2, Azure VM, Google Compute Engine</span></div>
+      </div>
+      <div class="card reveal">
+        <h3 style="margin-bottom:4px">Docker &amp; its competitors</h3>
+        <p style="margin-bottom:14px;color:var(--muted-2);font-size:13px">The OCI standard makes images interchangeable</p>
+        <p style="font-weight:800;color:var(--blue);letter-spacing:.06em;margin:0 0 6px">DOCKER</p>
+        <ul class="list-arrow" style="margin-bottom:16px">
+          <li>Developed by <b>Docker, Inc.</b> Created by Solomon Hykes, launched 2013.</li>
+          <li>Standards governed by the <b>Open Container Initiative (OCI)</b>.</li>
+          <li>Low-level runtime <b>containerd</b> is a CNCF project. Docker Desktop is a Docker, Inc. product; the engine is open source.</li>
+        </ul>
+        <p style="font-weight:800;color:var(--blue);letter-spacing:.06em;margin:0 0 6px">ALTERNATIVES</p>
+        <ul class="list-arrow">
+          <li><b>Podman</b> (Red Hat) — daemonless, rootless, Docker-compatible CLI.</li>
+          <li><b>containerd</b> — lightweight runtime extracted from Docker; used by Kubernetes.</li>
+          <li><b>CRI-O</b> — minimal runtime purpose-built for Kubernetes.</li>
+          <li><b>Buildah</b> — focused purely on building OCI images.</li>
+          <li><b>LXC/LXD</b> — system containers, closer to lightweight VMs.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== DOCKER VS KUBERNETES ===================== -->
+<section class="alt">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker-row"><span class="eyebrow" style="margin:0">Docker vs Kubernetes</span><span class="pager">17 / 20</span></div>
+      <h2>Different layers — not competitors.</h2>
+    </div>
+    <div class="grid g2" style="align-items:start;margin-bottom:28px">
+      <div class="card reveal">
+        <div class="icon-badge">🐳</div>
+        <h3>Docker</h3>
+        <p style="font-weight:700;color:var(--text);margin-bottom:8px">Build &amp; run a container, one machine</p>
+        <p>Docker's job is to package an app into an image and run containers, typically on one machine. It answers: <i>how do I turn my app into a container and run it here?</i></p>
+      </div>
+      <div class="card reveal">
+        <div class="icon-badge">☸️</div>
+        <h3>Kubernetes (K8s)</h3>
+        <p style="font-weight:700;color:var(--text);margin-bottom:8px">Orchestrate many containers across many machines</p>
+        <p style="margin-bottom:12px">A container orchestrator. Manages large numbers of containers across a cluster and answers the operational questions Docker alone doesn't:</p>
+        <ul class="list-arrow">
+          <li><b>Scheduling</b> — which server runs each container</li>
+          <li><b>Scaling</b> — auto add/remove replicas</li>
+          <li><b>Self-healing</b> — restart or reschedule failures</li>
+          <li><b>Load balancing</b> &amp; service discovery</li>
+          <li><b>Rolling updates</b> &amp; rollbacks</li>
+          <li><b>Config</b> &amp; secret management</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Redrawn crisp Kubernetes cluster SVG (replaces the cropped source PNG) -->
+    <div class="figure reveal">
+      <svg viewBox="0 0 760 300" role="img" aria-label="Kubernetes cluster containing nodes, each node holding pods, each pod holding containers">
+        <defs>
+          <linearGradient id="podFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eaf4ff"/><stop offset="1" stop-color="#d6ebff"/></linearGradient>
+        </defs>
+        <!-- cluster -->
+        <rect x="8" y="8" width="744" height="284" rx="18" fill="none" stroke="#9aa6b6" stroke-width="2" stroke-dasharray="2 6"/>
+        <text x="380" y="34" text-anchor="middle" font-family="Segoe UI,sans-serif" font-size="16" font-weight="800" fill="#0D1B2A">Cluster</text>
+        <!-- two nodes -->
+        <g font-family="Segoe UI,sans-serif">
+          <!-- node 1 -->
+          <rect x="30" y="52" width="340" height="222" rx="14" fill="#fff" stroke="#7d8a9b" stroke-width="2"/>
+          <rect x="150" y="42" width="90" height="22" rx="6" fill="#fff"/><text x="195" y="58" text-anchor="middle" font-size="14" font-weight="800" fill="#0D1B2A">Node</text>
+          <!-- node 2 -->
+          <rect x="390" y="52" width="340" height="222" rx="14" fill="#fff" stroke="#7d8a9b" stroke-width="2"/>
+          <rect x="510" y="42" width="90" height="22" rx="6" fill="#fff"/><text x="555" y="58" text-anchor="middle" font-size="14" font-weight="800" fill="#0D1B2A">Node</text>
+        </g>
+        <!-- pods (4) each with 2 containers -->
+        <g font-family="Segoe UI,sans-serif" text-anchor="middle">
+          <!-- pod positions -->
+          <!-- node1 pod a -->
+          <g>
+            <rect x="52"  y="92" width="140" height="162" rx="14" fill="none" stroke="#2496ED" stroke-width="2.5"/>
+            <rect x="92"  y="82" width="60" height="20" rx="6" fill="#fff"/><text x="122" y="97" font-size="12.5" font-weight="800" fill="#2496ED">Pod</text>
+            <rect x="70"  y="112" width="104" height="56" rx="9" fill="url(#podFill)" stroke="#a9d2f7"/><text x="122" y="145" font-size="12" font-weight="600" fill="#0D1B2A">Container</text>
+            <rect x="70"  y="180" width="104" height="56" rx="9" fill="url(#podFill)" stroke="#a9d2f7"/><text x="122" y="213" font-size="12" font-weight="600" fill="#0D1B2A">Container</text>
+          </g>
+          <!-- node1 pod b -->
+          <g>
+            <rect x="208" y="92" width="140" height="162" rx="14" fill="none" stroke="#2496ED" stroke-width="2.5"/>
+            <rect x="248" y="82" width="60" height="20" rx="6" fill="#fff"/><text x="278" y="97" font-size="12.5" font-weight="800" fill="#2496ED">Pod</text>
+            <rect x="226" y="112" width="104" height="56" rx="9" fill="url(#podFill)" stroke="#a9d2f7"/><text x="278" y="145" font-size="12" font-weight="600" fill="#0D1B2A">Container</text>
+            <rect x="226" y="180" width="104" height="56" rx="9" fill="url(#podFill)" stroke="#a9d2f7"/><text x="278" y="213" font-size="12" font-weight="600" fill="#0D1B2A">Container</text>
+          </g>
+          <!-- node2 pod c -->
+          <g>
+            <rect x="412" y="92" width="140" height="162" rx="14" fill="none" stroke="#2496ED" stroke-width="2.5"/>
+            <rect x="452" y="82" width="60" height="20" rx="6" fill="#fff"/><text x="482" y="97" font-size="12.5" font-weight="800" fill="#2496ED">Pod</text>
+            <rect x="430" y="112" width="104" height="56" rx="9" fill="url(#podFill)" stroke="#a9d2f7"/><text x="482" y="145" font-size="12" font-weight="600" fill="#0D1B2A">Container</text>
+            <rect x="430" y="180" width="104" height="56" rx="9" fill="url(#podFill)" stroke="#a9d2f7"/><text x="482" y="213" font-size="12" font-weight="600" fill="#0D1B2A">Container</text>
+          </g>
+          <!-- node2 pod d -->
+          <g>
+            <rect x="568" y="92" width="140" height="162" rx="14" fill="none" stroke="#2496ED" stroke-width="2.5"/>
+            <rect x="608" y="82" width="60" height="20" rx="6" fill="#fff"/><text x="638" y="97" font-size="12.5" font-weight="800" fill="#2496ED">Pod</text>
+            <rect x="586" y="112" width="104" height="56" rx="9" fill="url(#podFill)" stroke="#a9d2f7"/><text x="638" y="145" font-size="12" font-weight="600" fill="#0D1B2A">Container</text>
+            <rect x="586" y="180" width="104" height="56" rx="9" fill="url(#podFill)" stroke="#a9d2f7"/><text x="638" y="213" font-size="12" font-weight="600" fill="#0D1B2A">Container</text>
+          </g>
+        </g>
+      </svg>
+      <div class="figcap">A K8s cluster: nodes hold pods, and pods hold containers.</div>
+    </div>
+
+    <div class="callout reveal" style="margin-top:22px">
+      <span class="mark">🤝</span>
+      <p>They work <b>together</b> — you build the image with Docker (or Podman/Buildah), push to a registry, and Kubernetes pulls &amp; runs it across the cluster via a container runtime. <b>Docker is the inner loop; Kubernetes is the outer loop.</b></p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CORE CONCEPTS / ARCHITECTURE ===================== -->
+<section id="architecture">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker-row"><span class="eyebrow" style="margin:0">Core Concepts · Architecture</span><span class="pager">18 / 20</span></div>
+      <h2>Five nouns and a request flow.</h2>
+    </div>
+
+    <div class="grid" style="grid-template-columns:repeat(5,1fr);gap:16px;margin-bottom:34px">
+      <div class="noun reveal" style="flex-direction:column"><div class="ic">✦</div><div><h4>Image</h4><p>Read-only template with instructions for creating a container. e.g. <code>nginx</code>, <code>python:3.12</code>.</p></div></div>
+      <div class="noun reveal" style="flex-direction:column"><div class="ic">▣</div><div><h4>Container</h4><p>A running (or stopped) instance of an image.</p></div></div>
+      <div class="noun reveal" style="flex-direction:column"><div class="ic">▤</div><div><h4>Dockerfile</h4><p>A text file with instructions to build an image.</p></div></div>
+      <div class="noun reveal" style="flex-direction:column"><div class="ic">↑</div><div><h4>Registry</h4><p>A store for images. e.g. Docker Hub.</p></div></div>
+      <div class="noun reveal" style="flex-direction:column"><div class="ic">⚙</div><div><h4>Docker Engine</h4><p>The background daemon that builds and runs containers.</p></div></div>
+    </div>
+
+    <!-- Architecture request-flow SVG -->
+    <div class="figure reveal">
+      <svg viewBox="0 0 760 260" role="img" aria-label="Docker architecture: the CLI calls the daemon over a REST API; the daemon manages images, containers and the registry">
+        <defs>
+          <marker id="arrow" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#2496ED"/></marker>
+          <linearGradient id="dae" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2496ED"/><stop offset="1" stop-color="#0DB7ED"/></linearGradient>
+        </defs>
+        <g font-family="Segoe UI,sans-serif">
+          <!-- CLI -->
+          <rect x="30" y="96" width="180" height="66" rx="12" fill="#0D1B2A"/>
+          <text x="120" y="126" text-anchor="middle" font-size="15" font-weight="800" fill="#a5d6ff" font-family="Consolas,monospace">$ docker CLI</text>
+          <text x="120" y="146" text-anchor="middle" font-size="11.5" fill="#8fa4bd">what you type</text>
+          <!-- arrow CLI -> daemon -->
+          <line x1="212" y1="129" x2="300" y2="129" stroke="#2496ED" stroke-width="2.5" marker-end="url(#arrow)"/>
+          <text x="256" y="118" text-anchor="middle" font-size="11" font-weight="700" fill="#2496ED">REST API</text>
+          <text x="256" y="150" text-anchor="middle" font-size="10.5" fill="#8A93A0">HTTP / unix socket</text>
+          <!-- Daemon -->
+          <rect x="302" y="90" width="200" height="78" rx="12" fill="url(#dae)"/>
+          <text x="402" y="122" text-anchor="middle" font-size="16" font-weight="800" fill="#fff">Docker Daemon</text>
+          <text x="402" y="144" text-anchor="middle" font-size="12" fill="#e6f4fc" font-family="Consolas,monospace">dockerd</text>
+          <!-- three downstream -->
+          <line x1="402" y1="170" x2="402" y2="192" stroke="#2496ED" stroke-width="2.5"/>
+          <line x1="150" y1="192" x2="654" y2="192" stroke="#2496ED" stroke-width="2.5"/>
+          <line x1="150" y1="192" x2="150" y2="210" stroke="#2496ED" stroke-width="2.5" marker-end="url(#arrow)"/>
+          <line x1="402" y1="192" x2="402" y2="210" stroke="#2496ED" stroke-width="2.5" marker-end="url(#arrow)"/>
+          <line x1="654" y1="192" x2="654" y2="210" stroke="#2496ED" stroke-width="2.5" marker-end="url(#arrow)"/>
+          <g text-anchor="middle" font-size="13" font-weight="700" fill="#0D1B2A">
+            <rect x="86"  y="214" width="128" height="38" rx="9" fill="#eaf4ff" stroke="#a9d2f7"/><text x="150" y="238">Images</text>
+            <rect x="338" y="214" width="128" height="38" rx="9" fill="#eaf4ff" stroke="#a9d2f7"/><text x="402" y="238">Containers</text>
+            <rect x="590" y="214" width="128" height="38" rx="9" fill="#eaf4ff" stroke="#a9d2f7"/><text x="654" y="238">Registry</text>
+          </g>
+        </g>
+      </svg>
+      <div class="figcap">The CLI never runs containers itself — it asks the daemon over a REST API.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== PRACTICAL EXAMPLE ===================== -->
+<section id="practical" class="alt">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker-row"><span class="eyebrow" style="margin:0">Practical · Module 01 Example</span><span class="pager">19 / 20</span></div>
+      <h2>A Python web app + Redis, in two files.</h2>
+    </div>
+    <div class="grid g2" style="align-items:start">
+      <div class="codecard reveal">
+        <div class="bar"><span class="dots"><i style="background:#FF5F56"></i><i style="background:#FFBD2E"></i><i style="background:#27C93F"></i></span><span class="fname">Dockerfile</span></div>
+        <pre><code><span class="c-com"># Base image: official, small, version-pinned Python.</span>
+<span class="c-key">FROM</span> python:3.12-slim
+
+<span class="c-com"># Everything below runs inside /app.</span>
+<span class="c-key">WORKDIR</span> /app
+
+<span class="c-com"># Copy deps first so the pip layer is cached.</span>
+<span class="c-key">COPY</span> requirements.txt .
+<span class="c-key">RUN</span> pip install --no-cache-dir -r requirements.txt
+
+<span class="c-com"># Now copy the rest of the source code.</span>
+<span class="c-key">COPY</span> . .
+
+<span class="c-com"># Document the port the app listens on.</span>
+<span class="c-key">EXPOSE</span> 5000
+
+<span class="c-com"># Default command when a container starts.</span>
+<span class="c-key">CMD</span> [<span class="c-str">"python"</span>, <span class="c-str">"app.py"</span>]</code></pre>
+      </div>
+
+      <div class="codecard reveal">
+        <div class="bar"><span class="dots"><i style="background:#FF5F56"></i><i style="background:#FFBD2E"></i><i style="background:#27C93F"></i></span><span class="fname">docker-compose.yml</span></div>
+        <pre><code><span class="c-key2">services</span>:
+  <span class="c-key2">web</span>:                       <span class="c-com"># our Python web app</span>
+    <span class="c-key2">build</span>: .                 <span class="c-com"># build image from Dockerfile</span>
+    <span class="c-key2">ports</span>:
+      - <span class="c-str">"5000:5000"</span>          <span class="c-com"># host 5000 -&gt; container 5000</span>
+    <span class="c-key2">environment</span>:
+      <span class="c-key2">REDIS_HOST</span>: redis      <span class="c-com"># service name below</span>
+    <span class="c-key2">depends_on</span>:
+      - redis                <span class="c-com"># start redis before web</span>
+
+  <span class="c-key2">redis</span>:                     <span class="c-com"># counter storage</span>
+    <span class="c-key2">image</span>: <span class="c-str">"redis:7-alpine"</span>   <span class="c-com"># official image</span>
+    <span class="c-key2">volumes</span>:
+      - redisdata:/data      <span class="c-com"># persist across restarts</span>
+
+<span class="c-key2">volumes</span>:
+  <span class="c-key2">redisdata</span>:                <span class="c-com"># Docker-managed named volume</span></code></pre>
+      </div>
+    </div>
+
+    <div class="callout reveal" style="margin-top:24px">
+      <span class="mark">▶</span>
+      <p>One command: <span class="cmd-inline">docker compose up</span> — builds the web image, pulls <code>redis:7-alpine</code>, creates a private network so <code>web</code> reaches <code>redis</code> by name, mounts the <code>redisdata</code> volume, and starts redis before web. Open <a href="http://localhost:5000">http://localhost:5000</a> and refresh — the counter goes up.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== KEY TAKEAWAYS ===================== -->
+<section id="takeaways">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker-row"><span class="eyebrow" style="margin:0">Key Takeaways</span><span class="pager">20 / 20</span></div>
+      <h2>Eight things to remember.</h2>
+    </div>
+    <div class="grid g2">
+      <div class="card reveal"><div class="take"><div class="chk">1</div><div><h4>Docker packages apps into portable, lightweight containers.</h4><p>One image, identical across laptop, CI, and production.</p></div></div></div>
+      <div class="card reveal"><div class="take"><div class="chk">2</div><div><h4>Containers share the host kernel; VMs boot a full OS.</h4><p>Megabytes vs gigabytes; seconds vs minutes.</p></div></div></div>
+      <div class="card reveal"><div class="take"><div class="chk">3</div><div><h4>Docker solved what VMs did not.</h4><p>Consistent ships-with-the-app environments, high density, fast startup, one-command setup. Isolation alone was never the gap.</p></div></div></div>
+      <div class="card reveal"><div class="take"><div class="chk">4</div><div><h4>VMs and Docker are complementary.</h4><p>Containers commonly run inside VMs. VM = hardware isolation; Docker = app portability on top.</p></div></div></div>
+      <div class="card reveal"><div class="take"><div class="chk">5</div><div><h4>Different vendors, open standards.</h4><p>VMs from VMware, Microsoft, Oracle, KVM, etc. Docker from Docker, Inc., with standards under OCI/CNCF.</p></div></div></div>
+      <div class="card reveal"><div class="take"><div class="chk">6</div><div><h4>Today's alternatives to Docker.</h4><p>Podman, containerd, CRI-O, and Buildah — all build or run the same OCI images.</p></div></div></div>
+      <div class="card reveal"><div class="take"><div class="chk">7</div><div><h4>Docker ≠ Kubernetes.</h4><p>Docker builds and runs containers on one machine; Kubernetes orchestrates many across a cluster. Inner loop vs outer loop — not enemies.</p></div></div></div>
+      <div class="card reveal"><div class="take"><div class="chk">8</div><div><h4>The CLI talks to the daemon.</h4><p>Which manages images and containers. Every docker command is one REST call to dockerd.</p></div></div></div>
+    </div>
+
+    <div style="margin-top:40px" class="reveal">
+      <div class="next">
+        <div>
+          <div class="k">Next Module</div>
+          <h3>Module 02 — Installation &amp; Setup</h3>
+        </div>
+        <a class="btn" href="../modules/02-installation.md">Continue →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="wrap">Docker End-to-End Course · Module 01 — Introduction to Docker · <a href="https://github.com/PawanITC/Docker_Demo">github.com/PawanITC/Docker_Demo</a></div>
+</footer>
+
+<!-- ===================== DEEP-DIVE MODAL ===================== -->
+<div class="info-modal" id="infoModal" aria-hidden="true">
+  <div class="info-backdrop" data-close></div>
+  <div class="info-box" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
+    <button class="info-close" type="button" data-close aria-label="Close">✕</button>
+    <div class="info-head">
+      <span class="tl-tag" id="infoTag"></span>
+      <h3 id="infoTitle"></h3>
+    </div>
+    <div class="info-body" id="infoBody"></div>
+  </div>
+</div>
+
+<script>
+  // progress bar
+  const bar=document.getElementById('progress');
+  const onScroll=()=>{const h=document.documentElement;const sc=h.scrollTop;const max=h.scrollHeight-h.clientHeight;bar.style.width=(max>0?(sc/max*100):0)+'%';};
+  document.addEventListener('scroll',onScroll,{passive:true});onScroll();
+
+  // reveal on scroll
+  const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.12});
+  document.querySelectorAll('.reveal').forEach((el,i)=>{el.style.transitionDelay=(Math.min(i%6,5)*40)+'ms';io.observe(el);});
+
+  // history timeline: draw the spine as you scroll + reveal each entry
+  const tl=document.getElementById('timeline');
+  if(tl){
+    const fill=document.getElementById('tlFill');
+    const drawSpine=()=>{const r=tl.getBoundingClientRect();let p=(window.innerHeight*0.55 - r.top)/r.height;p=Math.max(0,Math.min(1,p));fill.style.height=(p*100)+'%';};
+    document.addEventListener('scroll',drawSpine,{passive:true});window.addEventListener('resize',drawSpine);drawSpine();
+    const tio=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');tio.unobserve(e.target);}});},{threshold:.25});
+    document.querySelectorAll('.tl-item').forEach(el=>tio.observe(el));
+  }
+
+  // deep-dive modal — used by timeline info icons and inline keyword chips
+  (function(){
+    const modal=document.getElementById('infoModal');
+    if(!modal) return;
+    const tagEl=document.getElementById('infoTag');
+    const titleEl=document.getElementById('infoTitle');
+    const bodyEl=document.getElementById('infoBody');
+    let lastFocus=null;
+
+    function show(title,tagText,tagClass,html,trigger){
+      titleEl.textContent=title||'';
+      if(tagText){tagEl.textContent=tagText;tagEl.className='tl-tag '+(tagClass||'docker');tagEl.style.display='';}
+      else{tagEl.style.display='none';}
+      bodyEl.innerHTML=html||'';
+      bodyEl.scrollTop=0;
+      lastFocus=trigger||null;
+      modal.classList.add('open');
+      modal.setAttribute('aria-hidden','false');
+      document.body.classList.add('modal-lock');
+      modal.querySelector('.info-close').focus();
+    }
+    function close(){
+      modal.classList.remove('open');
+      modal.setAttribute('aria-hidden','true');
+      document.body.classList.remove('modal-lock');
+      if(lastFocus){lastFocus.focus();lastFocus=null;}
+    }
+
+    // timeline cards: title/tag come from the card itself
+    document.querySelectorAll('.tl-info').forEach(btn=>{
+      btn.addEventListener('click',e=>{
+        e.stopPropagation();
+        const card=btn.closest('.tl-card');if(!card)return;
+        const detail=card.querySelector('.tl-detail');
+        const h3=card.querySelector('h3');
+        const tag=card.querySelector('.tl-tag');
+        show(h3?h3.textContent:'',tag?tag.textContent:'',tag?tag.className.replace('tl-tag','').trim():'',detail?detail.innerHTML:'',btn);
+      });
+    });
+
+    // inline keyword chips: point at a hidden .info-detail via data-target
+    document.querySelectorAll('.info-chip').forEach(btn=>{
+      btn.addEventListener('click',e=>{
+        e.stopPropagation();
+        const detail=document.getElementById(btn.getAttribute('data-target'));
+        if(!detail)return;
+        show(detail.getAttribute('data-title'),detail.getAttribute('data-tag'),detail.getAttribute('data-tagclass'),detail.innerHTML,btn);
+      });
+    });
+
+    modal.querySelectorAll('[data-close]').forEach(el=>el.addEventListener('click',close));
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modal.classList.contains('open'))close();});
+  })();
+</script>
+</body>
+</html>
