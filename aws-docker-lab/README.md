@@ -85,6 +85,11 @@ command from the outputs.
 
 ## Notes / gotchas
 
+- **OIDC `Not authorized to perform sts:AssumeRoleWithWebIdentity`:** if your org
+  customizes the OIDC *subject claim* to embed immutable IDs, the token's `sub`
+  is `repo:<owner>@<owner_id>/<repo>@<repo_id>:ref:...`, not `repo:<owner>/<repo>:...`.
+  Set `github_repo` in the bootstrap to the ID-augmented form (e.g.
+  `PawanITC@239576472/Docker_Demo@1361482141`) so the trust `sub` pattern matches.
 - `t4g` is **ARM64** — your images must support ARM64, or switch `instance_type`
   to `t3.micro` (x86).
 - No **NAT Gateway** anywhere (it would add cost); tasks/instances sit in a
