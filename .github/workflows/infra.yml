@@ -1,0 +1,117 @@
+name: Terraform Infra Control
+
+# Manually control any AWS Docker stack from the Actions tab:
+#   Actions -> "Terraform Infra Control" -> Run workflow -> pick stack + action.
+# Auth is via GitHub OIDC (no stored AWS keys). Remote state lives in S3, so an
+# `apply` in one run and a `destroy` in a later run share the same state.
+#
+# One-time setup (see aws-docker-lab/bootstrap + aws-docker-lab/README.md):
+#   Repo variables (Settings -> Secrets and variables -> Actions -> Variables):
+#     AWS_ROLE_ARN     - IAM role the workflow assumes (from bootstrap output)
+#     TF_STATE_BUCKET  - S3 state bucket name (from bootstrap output)
+#     AWS_REGION       - e.g. ap-south-1
+#     SSH_CIDR         - your.ip/32  (SSH + app ingress; NEVER 0.0.0.0/0)
+#     EC2_KEY_NAME     - (optional) existing EC2 key pair; empty => SSM only
+
+on:
+  workflow_dispatch:
+    inputs:
+      stack:
+        description: Which stack to act on
+        type: choice
+        required: true
+        options:
+          - 01-ec2-docker
+          - 02-ec2-spot-docker
+          - 03-lightsail-vm
+          - 04-lightsail-container
+          - 05-ecs-fargate
+      action:
+        description: Terraform action
+        type: choice
+        required: true
+        default: plan
+        options:
+          - plan
+          - apply
+          - destroy
+      confirm_destroy:
+        description: 'To DESTROY, type the stack name here (safety guard; ignored for plan/apply)'
+        type: string
+        required: false
+        default: ''
+
+# OIDC needs id-token: write. contents: read to check out the repo.
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  # Never let two runs touch the same stack's state at once.
+  group: tf-${{ github.event.inputs.stack }}
+  cancel-in-progress: false
+
+jobs:
+  terraform:
+    name: ${{ github.event.inputs.action }} · ${{ github.event.inputs.stack }}
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+      # Terraform ignores TF_VAR_* for variables a stack does not declare, so we
+      # can safely export all of them for every stack.
+      TF_VAR_aws_region: ${{ vars.AWS_REGION }}
+      TF_VAR_ssh_cidr: ${{ vars.SSH_CIDR }}
+      TF_VAR_ingress_cidr: ${{ vars.SSH_CIDR }}
+      TF_VAR_key_name: ${{ vars.EC2_KEY_NAME }}
+    steps:
+      - name: Safety guard for destroy
+        if: ${{ github.event.inputs.action == 'destroy' && github.event.inputs.confirm_destroy != github.event.inputs.stack }}
+        run: |
+          echo "::error::To destroy, set 'confirm_destroy' to the exact stack name: ${{ github.event.inputs.stack }}"
+          exit 1
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: gha-${{ github.event.inputs.stack }}-${{ github.run_id }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.10.5
+
+      - name: Terraform init
+        working-directory: aws-docker-lab/${{ github.event.inputs.stack }}
+        run: |
+          terraform init -input=false \
+            -backend-config="bucket=${TF_STATE_BUCKET}" \
+            -backend-config="key=aws-docker-lab/${{ github.event.inputs.stack }}/terraform.tfstate" \
+            -backend-config="region=${AWS_REGION}" \
+            -backend-config="use_lockfile=true"
+
+      - name: Terraform validate
+        working-directory: aws-docker-lab/${{ github.event.inputs.stack }}
+        run: terraform validate
+
+      - name: Terraform ${{ github.event.inputs.action }}
+        working-directory: aws-docker-lab/${{ github.event.inputs.stack }}
+        run: |
+          case "${{ github.event.inputs.action }}" in
+            plan)
+              terraform plan -input=false ;;
+            apply)
+              terraform apply -input=false -auto-approve ;;
+            destroy)
+              terraform destroy -input=false -auto-approve ;;
+          esac
+
+      - name: Show outputs
+        if: ${{ github.event.inputs.action == 'apply' }}
+        working-directory: aws-docker-lab/${{ github.event.inputs.stack }}
+        run: terraform output

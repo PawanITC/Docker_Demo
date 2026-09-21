@@ -1,0 +1,7 @@
+# Copy to terraform.tfvars for LOCAL runs (gitignored).
+aws_region      = "ap-south-1"
+task_cpu        = "256" # 0.25 vCPU — smallest/cheapest
+task_memory     = "512" # MiB
+container_image = "public.ecr.aws/nginx/nginx:latest"
+container_port  = 80
+ingress_cidr    = "49.123.45.67/32"

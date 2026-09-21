@@ -1,0 +1,6 @@
+# Copy to terraform.tfvars for LOCAL runs (gitignored).
+aws_region      = "ap-south-1"
+power           = "nano" # cheapest ~$7/mo
+scale           = 1
+container_image = "nginx:latest"
+container_port  = 80

@@ -1,0 +1,6 @@
+# Copy to terraform.tfvars for LOCAL runs (gitignored).
+aws_region       = "ap-south-1"
+instance_type    = "t4g.micro"
+ssh_cidr         = "49.123.45.67/32" # your public IP /32 — never 0.0.0.0/0
+key_name         = ""                # optional; empty => SSM-only access
+root_volume_size = 20

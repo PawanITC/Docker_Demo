@@ -1,0 +1,5 @@
+# Copy to terraform.tfvars and fill in. terraform.tfvars is gitignored.
+aws_region        = "ap-south-1"
+project           = "docker-lab"
+state_bucket_name = "docker-lab-tfstate-123456789012" # must be globally unique
+github_repo       = "PawanITC/Docker_Demo"
