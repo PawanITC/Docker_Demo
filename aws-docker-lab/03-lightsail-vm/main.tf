@@ -48,6 +48,21 @@ resource "aws_lightsail_instance" "docker" {
   tags = { Project = var.project }
 }
 
+# ---- Private ECR repo to hold your own images --------------------------------
+# NOTE: a Lightsail VM has NO IAM instance role, so it cannot pull a PRIVATE ECR
+# image automatically. To pull from this repo on the VM you must give it AWS
+# credentials manually, e.g. create an IAM user with AmazonEC2ContainerRegistryReadOnly,
+# then on the box: `aws configure` (paste keys), then the ecr_login_command below.
+# For public images (Docker Hub, public ECR) no credentials are needed.
+resource "aws_ecr_repository" "app" {
+  name         = var.project
+  force_delete = true
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+  tags = { Project = var.project }
+}
+
 # Open the ports we need (Lightsail has its own firewall, separate from VPC SGs).
 resource "aws_lightsail_instance_public_ports" "docker" {
   instance_name = aws_lightsail_instance.docker.name

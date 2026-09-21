@@ -76,12 +76,33 @@ docker run -d --name nginx -p 8080:80 nginx # container runs on AWS, not locally
 
 Never expose Docker's TCP port 2375 to the Internet — use SSH, as above.
 
-## Deploy your own image (stacks 04 / 05)
+## Deploy your own image via ECR (all stacks)
 
-Build locally, push to ECR (created by stack 05) or via the Lightsail plugin
-(stack 04), then set `container_image` and re-run `apply`. For Fargate, after
-pushing a new `:latest`, force a redeploy with the `force_new_deployment`
-command from the outputs.
+**Every stack now creates its own private ECR repository** (see the
+`ecr_repository_url` output) and wires pull access to its compute:
+
+| Stack | How it pulls from ECR |
+|-------|-----------------------|
+| `01` / `02` (EC2) | EC2 **instance role** has `AmazonEC2ContainerRegistryReadOnly` — pull with no keys on the box |
+| `03` (Lightsail VM) | ⚠️ no instance role — pull needs manual creds on the VM (`aws configure` with an IAM user that has ECR read), then the `ecr_login_command` output |
+| `04` (Lightsail container) | Lightsail **image-puller role** (granted via an ECR repo policy) pulls automatically |
+| `05` (Fargate) | ECS **execution role** has ECR pull built in |
+
+**Push an image (from your machine), build for ARM64 for stacks 01–03:**
+
+```bash
+ECR=<ecr_repository_url output>          # e.g. 670578096006.dkr.ecr.ap-south-1.amazonaws.com/docker-lab
+aws ecr get-login-password --region ap-south-1 \
+  | docker login --username AWS --password-stdin "${ECR%/*}"
+docker buildx build --platform linux/arm64 -t "$ECR:latest" .   # EC2/Lightsail VM are ARM64
+docker push "$ECR:latest"
+```
+
+- **EC2 (01/02):** SSH/SSM in, run the `ecr_login_command`, then
+  `sudo docker pull $ECR:latest && sudo docker run -d -p 8080:80 $ECR:latest`.
+- **Lightsail container (04) / Fargate (05):** set `container_image = "<ecr_repository_url>:latest"`
+  and re-run `apply`. For Fargate, after pushing a new `:latest`, force a
+  redeploy with the `force_new_deployment` command from the outputs.
 
 ## Notes / gotchas
 

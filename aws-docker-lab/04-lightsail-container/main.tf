@@ -29,12 +29,48 @@ provider "aws" {
   region = var.aws_region
 }
 
+# ---- Private ECR repo to hold your own images --------------------------------
+resource "aws_ecr_repository" "app" {
+  name         = var.project
+  force_delete = true
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+  tags = { Project = var.project }
+}
+
 resource "aws_lightsail_container_service" "app" {
   name        = var.project
   power       = var.power
   scale       = var.scale
   is_disabled = false
   tags        = { Project = var.project }
+
+  # Let this service pull PRIVATE images from ECR. Lightsail creates a managed
+  # "image puller" IAM principal; we grant it pull access on the repo below.
+  private_registry_access {
+    ecr_image_puller_role {
+      is_active = true
+    }
+  }
+}
+
+# Allow the Lightsail image-puller principal to pull from this ECR repo.
+resource "aws_ecr_repository_policy" "lightsail_pull" {
+  repository = aws_ecr_repository.app.name
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "AllowLightsailPull"
+      Effect    = "Allow"
+      Principal = { AWS = aws_lightsail_container_service.app.private_registry_access[0].ecr_image_puller_role[0].principal_arn }
+      Action = [
+        "ecr:BatchGetImage",
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:BatchCheckLayerAvailability",
+      ]
+    }]
+  })
 }
 
 resource "aws_lightsail_container_service_deployment_version" "app" {

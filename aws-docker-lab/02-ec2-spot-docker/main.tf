@@ -132,9 +132,25 @@ resource "aws_iam_role_policy_attachment" "ssm" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
+# Pull from this stack's ECR repo using the instance role (no keys on the box).
+resource "aws_iam_role_policy_attachment" "ecr_read" {
+  role       = aws_iam_role.ec2.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
+
 resource "aws_iam_instance_profile" "ec2" {
   name = "${var.project}-ec2-profile"
   role = aws_iam_role.ec2.name
+}
+
+# ---- Private ECR repo to hold your own images --------------------------------
+resource "aws_ecr_repository" "app" {
+  name         = var.project
+  force_delete = true
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+  tags = { Project = var.project }
 }
 
 resource "aws_instance" "docker" {

@@ -136,9 +136,28 @@ resource "aws_iam_role_policy_attachment" "ssm" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
+# Let the instance PULL from this stack's ECR repo using its instance role —
+# no access keys on the box. AWS-managed read-only policy (GetAuthorizationToken
+# + pull). Use it on the box with:
+#   aws ecr get-login-password --region <region> | sudo docker login --username AWS --password-stdin <ecr_repository_url>
+resource "aws_iam_role_policy_attachment" "ecr_read" {
+  role       = aws_iam_role.ec2.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
+
 resource "aws_iam_instance_profile" "ec2" {
   name = "${var.project}-ec2-profile"
   role = aws_iam_role.ec2.name
+}
+
+# ---- Private ECR repo to hold your own images --------------------------------
+resource "aws_ecr_repository" "app" {
+  name         = var.project
+  force_delete = true # lab convenience: allow destroy even if images exist
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+  tags = { Project = var.project }
 }
 
 # ---- The EC2 instance (installs Docker via user-data) ------------------------
