@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Module 02 — Installation &amp; Setup</title>
+<meta name="description" content="Install Docker on your OS, verify it works, and learn Docker Desktop vs Docker Engine.">
+<style>
+  /* ============ Design tokens (shared with the Module 01 deck) ============ */
+  :root{
+    --blue:#2496ED;        /* Docker primary */
+    --cyan:#0DB7ED;        /* Docker cyan   */
+    --blue-600:#1877cf;
+    --ink:#0D1B2A;         /* deep navy      */
+    --ink-2:#0f2850;
+    --text:#1a1f2b;
+    --muted:#5A6472;
+    --muted-2:#8A93A0;
+    --line:#E4E8EE;
+    --tint:#E6F4FC;        /* light blue tint */
+    --tint-2:#F7F9FC;
+    --panel:#FFFFFF;
+    --bg:#F4F7FB;
+    --red:#FF7B72;
+    --amber:#FFBD2E;
+    --green:#27C93F;
+    --code-bg:#0D1B2A;
+    --code-blue:#A5D6FF;
+    --radius:16px;
+    --shadow:0 1px 2px rgba(13,27,42,.04),0 8px 24px rgba(13,27,42,.06);
+    --shadow-lg:0 24px 60px rgba(13,27,42,.14);
+    --maxw:1080px;
+    --font:'Segoe UI',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;
+    --mono:'SF Mono','Cascadia Code','JetBrains Mono',Consolas,'Courier New',monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;font-family:var(--font);color:var(--text);background:var(--bg);
+    line-height:1.65;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  }
+  a{color:var(--blue);text-decoration:none}
+  a:hover{text-decoration:underline}
+  h1,h2,h3,h4{line-height:1.15;letter-spacing:-.02em;margin:0}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+  .eyebrow{font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--blue);margin-bottom:14px}
+  .lead{font-size:19px;color:var(--muted);max-width:64ch}
+
+  /* progress + topbar */
+  #progress{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--cyan),var(--blue));z-index:100;transition:width .1s ease-out}
+  header.topbar{position:sticky;top:0;z-index:90;background:rgba(244,247,251,.82);backdrop-filter:saturate(180%) blur(12px);border-bottom:1px solid var(--line)}
+  .topbar .wrap{display:flex;align-items:center;gap:16px;height:60px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:-.01em}
+  .brand .whale{width:30px;height:30px;flex:0 0 auto}
+  .brand small{color:var(--muted);font-weight:600}
+  .topnav{margin-left:auto;display:flex;gap:6px}
+  .topnav a{font-size:13.5px;font-weight:600;color:var(--muted);padding:7px 12px;border-radius:9px}
+  .topnav a:hover{background:var(--tint);color:var(--blue);text-decoration:none}
+  @media(max-width:820px){.topnav{display:none}}
+
+  /* hero */
+  .hero{position:relative;overflow:hidden;color:#E5E7EB;
+    background:
+      radial-gradient(900px 600px at 78% 12%, rgba(36,150,237,.30), transparent 60%),
+      radial-gradient(700px 500px at 15% 90%, rgba(13,183,237,.18), transparent 55%),
+      linear-gradient(160deg,#0b1524 0%,#0D1B2A 55%,#0a1220 100%);}
+  .hero .wrap{display:grid;grid-template-columns:1.25fr .9fr;gap:48px;align-items:center;padding:80px 24px 88px}
+  .hero .kicker{color:#8fd0ff;font-weight:700;letter-spacing:.18em;text-transform:uppercase;font-size:12.5px}
+  .hero h1{font-size:clamp(38px,6vw,64px);font-weight:800;margin:16px 0 20px;color:#fff}
+  .hero h1 .grad{background:linear-gradient(90deg,#7cc4ff,#38bdf8);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p.sub{font-size:19px;color:#aeb9c9;max-width:52ch}
+  .hero .chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px}
+  .chip{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;padding:8px 14px;border-radius:999px;color:#dbe7f5;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12)}
+  .chip .dot{width:7px;height:7px;border-radius:50%;background:var(--cyan)}
+  .hero .source{margin-top:34px;font-size:13px;color:#7d8590}
+  .hero .source a{color:#9cc9f2}
+
+  /* hero terminal art */
+  .hero-term{background:#0a1626;border:1px solid rgba(255,255,255,.1);border-radius:16px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.5);width:100%;max-width:420px;justify-self:center}
+  .hero-term .bar{display:flex;align-items:center;gap:7px;padding:11px 14px;background:#060f1c;border-bottom:1px solid rgba(255,255,255,.07)}
+  .hero-term .bar i{width:11px;height:11px;border-radius:50%;display:block}
+  .hero-term .bar .fname{margin-left:8px;color:#6f8098;font-family:var(--mono);font-size:12px}
+  .hero-term pre{margin:0;padding:18px 18px 22px;font-family:var(--mono);font-size:12.5px;line-height:1.75;color:#c9d6e5;overflow-x:auto}
+  .hero-term .p{color:#42d17a;font-weight:700}
+  .hero-term .c{color:var(--code-blue)}
+  .hero-term .o{color:#8fa8c4}
+  .hero-term .ok{color:#42d17a}
+  @media(max-width:820px){.hero .wrap{grid-template-columns:1fr;padding:60px 24px 68px}.hero-term{order:-1;max-width:100%}}
+
+  /* sections */
+  section{padding:72px 0;position:relative}
+  section.alt{background:linear-gradient(180deg,#fff,var(--tint-2))}
+  .sec-head{margin-bottom:40px;max-width:72ch}
+  .sec-head h2{font-size:clamp(26px,3.6vw,38px);font-weight:800;color:var(--ink);margin-bottom:14px}
+  .kicker-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  .pager{font-size:12.5px;color:var(--muted-2);font-weight:700;letter-spacing:.08em}
+
+  /* divider band */
+  .divider{color:#e7eef7;position:relative;overflow:hidden;
+    background:radial-gradient(600px 400px at 85% 20%, rgba(36,150,237,.22), transparent 60%),linear-gradient(120deg,#0D1B2A,#12314f)}
+  .divider .wrap{padding:64px 24px;position:relative;z-index:1}
+  .divider .step{font-size:13px;letter-spacing:.2em;font-weight:700;color:#7fc0ff;text-transform:uppercase}
+  .divider h2{font-size:clamp(30px,5vw,48px);font-weight:800;color:#fff;margin:12px 0 16px}
+  .divider p{color:#aeb9c9;font-size:18px;max-width:60ch}
+  .divider .orb{position:absolute;width:420px;height:420px;right:-80px;top:-120px;border-radius:50%;background:radial-gradient(circle,rgba(13,183,237,.35),transparent 65%);filter:blur(10px)}
+
+  /* grids + cards */
+  .grid{display:grid;gap:20px}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  @media(max-width:900px){.g3{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:640px){.g2,.g3{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:26px;box-shadow:var(--shadow);transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+  .card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg);border-color:#cfe3f7}
+  .card h3{font-size:18px;color:var(--ink);margin-bottom:8px}
+  .card p{margin:0;color:var(--muted);font-size:15px}
+  .icon-badge{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:12px;background:var(--tint);color:var(--blue);font-size:22px;margin-bottom:14px}
+
+  /* objectives */
+  .obj{display:flex;gap:16px;align-items:flex-start}
+  .obj .n{flex:0 0 auto;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-weight:800;font-size:14px;background:var(--ink);color:#fff}
+  .obj p{margin:4px 0 0}
+
+  /* callout */
+  .callout{display:flex;gap:14px;align-items:flex-start;background:var(--tint);border:1px solid #cfe6fb;border-left:4px solid var(--blue);border-radius:12px;padding:18px 20px;color:#123}
+  .callout .mark{font-size:20px}
+  .callout b{color:var(--ink)}
+  .callout code{font-family:var(--mono);font-size:13px;background:#fff;border:1px solid #cfe6fb;padding:1px 6px;border-radius:5px;color:var(--blue-600)}
+
+  /* table */
+  .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);background:#fff}
+  table{border-collapse:collapse;width:100%;min-width:520px;font-size:15px}
+  thead th{background:var(--ink);color:#fff;text-align:left;padding:14px 18px;font-weight:700;font-size:14px}
+  thead th:first-child{border-top-left-radius:var(--radius)}
+  thead th:last-child{border-top-right-radius:var(--radius)}
+  tbody td{padding:13px 18px;border-top:1px solid var(--line);color:var(--muted)}
+  tbody tr td:first-child{font-weight:600;color:var(--text)}
+  tbody tr:nth-child(even){background:var(--tint-2)}
+  .col-docker{background:rgba(36,150,237,.05)}
+  thead th.col-docker{background:var(--blue)}
+
+  /* steps list (numbered install steps) */
+  .steps{list-style:none;margin:0;padding:0;counter-reset:st}
+  .steps li{position:relative;padding:14px 0 14px 52px;border-top:1px solid var(--line);color:var(--muted);font-size:15px}
+  .steps li:first-child{border-top:none}
+  .steps li::before{counter-increment:st;content:counter(st);position:absolute;left:0;top:12px;width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--blue),var(--cyan));color:#fff;font-weight:800;font-size:14px;display:grid;place-items:center;box-shadow:0 6px 16px rgba(36,150,237,.3)}
+  .steps li b{color:var(--ink)}
+  .steps li code{font-family:var(--mono);font-size:13px;background:var(--tint-2);border:1px solid var(--line);padding:1px 6px;border-radius:5px;color:var(--blue-600)}
+
+  /* OS tabs */
+  .ostabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
+  .ostab{display:inline-flex;align-items:center;gap:9px;font-weight:700;font-size:14px;color:var(--muted);background:#fff;border:1px solid var(--line);border-radius:11px;padding:10px 16px;cursor:pointer;transition:all .16s ease}
+  .ostab:hover{border-color:#a9d2f7;color:var(--blue-600)}
+  .ostab.active{background:var(--blue);color:#fff;border-color:var(--blue);box-shadow:0 6px 16px rgba(36,150,237,.3)}
+  .ostab svg{width:18px;height:18px}
+  .ospanel{display:none;animation:fadein .25s ease}
+  .ospanel.active{display:block}
+  @keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  /* code cards */
+  .codecard{border-radius:14px;overflow:hidden;border:1px solid #1b2b3f;box-shadow:var(--shadow);background:var(--code-bg)}
+  .codecard .bar{display:flex;align-items:center;gap:8px;padding:11px 16px;background:#0a1626;border-bottom:1px solid #1b2b3f}
+  .codecard .bar .dots{display:flex;gap:7px}
+  .codecard .bar .dots i{width:11px;height:11px;border-radius:50%;display:block}
+  .codecard .bar .fname{margin-left:8px;color:#9fb2c9;font-size:12.5px;font-family:var(--mono);font-weight:600}
+  .codecard .bar .copy{margin-left:auto;font-family:var(--font);font-size:11.5px;font-weight:700;color:#9fb2c9;background:transparent;border:1px solid #22384f;border-radius:7px;padding:4px 10px;cursor:pointer;transition:all .16s ease}
+  .codecard .bar .copy:hover{background:var(--blue);color:#fff;border-color:var(--blue)}
+  .codecard .bar .copy.done{background:#12a83a;color:#fff;border-color:#12a83a}
+  .codecard pre{margin:0;padding:18px 20px;overflow-x:auto}
+  code,pre{font-family:var(--mono);font-size:13.5px;line-height:1.7}
+  pre code{color:#c9d6e5;white-space:pre}
+  .c-com{color:#7d8590;font-style:italic}
+  .c-key{color:#ff9d8a}
+  .c-str{color:#a5d6ff}
+  .c-flag{color:#f2cc60}
+  .cmd-inline{background:var(--ink);color:#a5d6ff;font-family:var(--mono);padding:2px 7px;border-radius:6px;font-size:13px}
+
+  /* practical block */
+  .practical{background:#fff;border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+  .practical .phead{display:flex;align-items:center;gap:14px;padding:20px 24px;border-bottom:1px solid var(--line);background:var(--tint-2)}
+  .practical .phead .tag{flex:0 0 auto;font-family:var(--mono);font-size:12px;font-weight:800;color:#fff;background:linear-gradient(135deg,var(--blue),var(--cyan));padding:6px 12px;border-radius:9px}
+  .practical .phead h3{font-size:17.5px;color:var(--ink)}
+  .practical .phead p{margin:2px 0 0;color:var(--muted);font-size:13.5px}
+  .practical .pbody{padding:22px 24px}
+  .practical .whathappened{margin-top:18px;border-left:3px solid var(--cyan);background:linear-gradient(180deg,var(--tint),#eef8ff);border-radius:8px;padding:14px 18px}
+  .practical .whathappened .k{font-size:11.5px;font-weight:800;letter-spacing:.14em;color:var(--blue);text-transform:uppercase;margin-bottom:6px}
+  .practical .whathappened p{margin:0 0 6px;color:#123;font-size:14px}
+  .practical .whathappened p:last-child{margin:0}
+  .practical .whathappened code{font-family:var(--mono);font-size:12.5px;background:#fff;border:1px solid #cfe6fb;padding:1px 6px;border-radius:5px;color:var(--blue-600)}
+
+  /* resource sliders visual */
+  .res{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:640px){.res{grid-template-columns:1fr}}
+  .slider{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
+  .slider .lbl{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+  .slider .lbl b{color:var(--ink);font-size:14px}
+  .slider .lbl span{font-family:var(--mono);font-size:13px;font-weight:800;color:var(--blue-600)}
+  .track{height:8px;border-radius:99px;background:var(--tint);position:relative;overflow:hidden}
+  .track .fillbar{position:absolute;left:0;top:0;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--cyan),var(--blue))}
+  .slider .cap{margin:8px 0 0;font-size:12.5px;color:var(--muted-2)}
+
+  /* takeaways */
+  .take{display:flex;gap:16px;align-items:flex-start}
+  .take .chk{flex:0 0 auto;width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--green),#12a83a);color:#fff;display:grid;place-items:center;font-weight:800;font-size:15px;box-shadow:0 6px 14px rgba(39,201,63,.3)}
+  .take h4{color:var(--ink);font-size:16px;margin-bottom:3px}
+  .take p{margin:0;color:var(--muted);font-size:14px}
+
+  /* next + footer */
+  .next{background:radial-gradient(700px 400px at 80% 20%,rgba(36,150,237,.25),transparent 60%),linear-gradient(120deg,#0D1B2A,#12314f);color:#e7eef7;border-radius:22px;padding:44px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;box-shadow:var(--shadow-lg)}
+  .next .k{color:#7fc0ff;font-weight:700;letter-spacing:.18em;text-transform:uppercase;font-size:12.5px}
+  .next h3{color:#fff;font-size:26px;margin-top:8px}
+  .btn{display:inline-flex;align-items:center;gap:10px;background:#fff;color:var(--ink);font-weight:700;padding:14px 22px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+  .btn:hover{text-decoration:none;transform:translateY(-2px);transition:transform .15s}
+  footer.site{padding:40px 0;text-align:center;color:var(--muted-2);font-size:13.5px}
+
+  /* reveal on scroll */
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease}
+  .reveal.in{opacity:1;transform:none}
+
+  /* ============ Deep-dive info chip + modal (shared with Module 01) ============ */
+  .info-detail{display:none}
+  .kw-info{position:relative;white-space:nowrap}
+  .info-chip{display:inline-grid;place-items:center;vertical-align:super;margin-left:3px;
+    width:20px;height:20px;border-radius:50%;border:1px solid var(--line);background:#fff;color:var(--muted-2);
+    font-family:var(--mono);font-size:11px;font-weight:800;font-style:italic;line-height:1;cursor:pointer;padding:0;
+    transition:transform .16s ease,background .16s ease,color .16s ease,border-color .16s ease,box-shadow .16s ease}
+  .info-chip:hover,.info-chip:focus-visible{background:var(--blue);color:#fff;border-color:var(--blue);transform:scale(1.14);box-shadow:0 3px 10px rgba(36,150,237,.35);outline:none}
+  .info-chip::after{content:"Deep dive";position:absolute;bottom:calc(100% + 8px);left:50%;transform:translate(-50%,4px);white-space:nowrap;
+    background:var(--ink);color:#fff;font-style:normal;font-weight:700;font-size:11px;letter-spacing:.02em;
+    padding:5px 9px;border-radius:7px;opacity:0;pointer-events:none;transition:opacity .16s ease,transform .16s ease}
+  .info-chip:hover::after,.info-chip:focus-visible::after{opacity:1;transform:translate(-50%,0)}
+
+  /* prominent deep-dive banner button */
+  .deepdive{display:flex;align-items:center;gap:16px;background:linear-gradient(120deg,#0D1B2A,#12314f);border-radius:var(--radius);
+    padding:22px 26px;box-shadow:var(--shadow-lg);color:#e7eef7;flex-wrap:wrap}
+  .deepdive .dd-ic{flex:0 0 auto;width:46px;height:46px;border-radius:12px;display:grid;place-items:center;font-size:22px;background:rgba(36,150,237,.2);border:1px solid rgba(124,196,255,.35)}
+  .deepdive .dd-txt{flex:1 1 260px}
+  .deepdive .dd-txt .k{color:#7fc0ff;font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:11.5px;margin-bottom:4px}
+  .deepdive .dd-txt h4{color:#fff;font-size:18px;margin:0}
+  .deepdive .dd-txt p{margin:4px 0 0;color:#aeb9c9;font-size:13.5px}
+  .deepdive button{flex:0 0 auto;display:inline-flex;align-items:center;gap:8px;background:#fff;color:var(--ink);font-weight:700;font-family:var(--font);
+    font-size:14px;border:none;padding:12px 20px;border-radius:11px;cursor:pointer;box-shadow:0 10px 30px rgba(0,0,0,.25);transition:transform .15s ease}
+  .deepdive button:hover{transform:translateY(-2px)}
+
+  .tl-tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:5px 11px;border-radius:999px;border:1px solid}
+  .tl-tag.docker{color:#1877cf;background:#eaf4ff;border-color:#bcdcf7}
+
+  .info-modal{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;padding:24px}
+  .info-modal.open{display:flex}
+  .info-backdrop{position:absolute;inset:0;background:rgba(13,27,42,.55);backdrop-filter:blur(3px);animation:infoFade .2s ease}
+  .info-box{position:relative;background:#fff;border-radius:16px;box-shadow:0 30px 80px rgba(13,27,42,.4);
+    width:min(820px,100%);max-height:90vh;display:flex;flex-direction:column;overflow:hidden;animation:infoPop .22s cubic-bezier(.2,.9,.3,1.15)}
+  @keyframes infoFade{from{opacity:0}to{opacity:1}}
+  @keyframes infoPop{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+  .info-head{padding:22px 26px 16px;border-bottom:1px solid var(--line)}
+  .info-head .tl-tag{margin-bottom:8px}
+  .info-head h3{font-size:20px;color:var(--ink);margin:0;line-height:1.25;padding-right:32px}
+  .info-close{position:absolute;top:16px;right:16px;width:34px;height:34px;border-radius:9px;border:1px solid var(--line);
+    background:#fff;color:var(--muted);font-size:16px;cursor:pointer;display:grid;place-items:center;transition:background .16s,color .16s}
+  .info-close:hover{background:var(--ink);color:#fff}
+  .info-body{padding:20px 26px 26px;overflow-y:auto;overscroll-behavior:contain}
+  .info-body h4{font-size:15px;color:var(--ink);margin:24px 0 8px;line-height:1.3}
+  .info-body h4:first-child{margin-top:0}
+  .info-body h5{font-size:13px;color:var(--blue-600);margin:16px 0 6px;text-transform:uppercase;letter-spacing:.05em}
+  .info-body p{font-size:14px;color:var(--muted);line-height:1.65;margin:0 0 10px}
+  .info-body ul{margin:0 0 12px;padding-left:22px}
+  .info-body li{font-size:14px;color:var(--muted);line-height:1.6;margin:0 0 6px}
+  .info-body code{font-family:var(--mono);font-size:12.5px;background:var(--tint);color:var(--blue-600);padding:1px 6px;border-radius:5px}
+  .info-body pre{background:var(--code-bg);color:#cfe0f5;font-family:var(--mono);font-size:12px;line-height:1.55;
+    padding:14px 16px;border-radius:10px;overflow-x:auto;margin:0 0 14px;border:1px solid #1b2b3f}
+  .info-body pre code{background:none;color:inherit;padding:0;font-size:inherit}
+  .info-body table{width:100%;border-collapse:collapse;margin:0 0 14px;font-size:13px}
+  .info-body th,.info-body td{text-align:left;padding:8px 12px;border:1px solid var(--line);color:var(--muted)}
+  .info-body th{background:var(--tint);color:var(--ink);font-weight:700}
+  .info-body .info-note{border-left:3px solid var(--blue);background:var(--tint);border-radius:8px;padding:12px 16px;margin:0 0 14px}
+  .info-body .info-note p{margin:0;color:#123}
+  .info-body .warn{border-left:3px solid #e5484d;background:#fff1f0}
+  .info-body .warn p{color:#8a2b28}
+  body.modal-lock{overflow:hidden}
+  @media(max-width:640px){.info-box{width:100%}.deepdive button{width:100%;justify-content:center}}
+
+  @media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}html{scroll-behavior:auto}.ospanel{animation:none}.info-backdrop,.info-box{animation:none}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<!-- ===================== TOP BAR ===================== -->
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="#top" style="color:inherit">
+      <svg class="whale" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="9" fill="#2496ED"/><path d="M8 24c0-1 .6-1.6 1.6-1.6h1.1v-2.1c0-.5.4-.9.9-.9h2.2c.5 0 .9.4.9.9v2.1h1.6v-4.3c0-.5.4-.9.9-.9h2.2c.5 0 .9.4.9.9v4.3h5.3c1.6 0 3-.9 3.6-2.3.2.9.3 1.9.1 2.9-.5 2.8-3 4.8-6.4 4.8H13c-2.8 0-5-2.2-5-5z" fill="#fff"/><circle cx="30.5" cy="18" r="1" fill="#fff"/></svg>
+      <span>Docker Demo <small>· Module 02</small></span>
+    </a>
+    <nav class="topnav">
+      <a href="#objectives">Objectives</a>
+      <a href="#which">Which Docker</a>
+      <a href="#install">Install</a>
+      <a href="#verify">Verify</a>
+      <a href="#state">System State</a>
+      <a href="#resources">Resources</a>
+      <a href="#takeaways">Takeaways</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ===================== HERO ===================== -->
+<a id="top"></a>
+<div class="hero">
+  <div class="wrap">
+    <div>
+      <div class="kicker">Docker Demo · Module 02</div>
+      <h1>Installation<br><span class="grad">&amp; Setup</span></h1>
+      <p class="sub">Get Docker installed on your machine, prove it works with a single command, and know the difference between <b style="color:#d7e6f5">Docker Desktop</b> and <b style="color:#d7e6f5">Docker Engine</b>.</p>
+      <div class="chips">
+        <span class="chip"><span class="dot"></span>Desktop vs Engine</span>
+        <span class="chip"><span class="dot"></span>Verify &amp; test</span>
+        <span class="chip"><span class="dot"></span>System state</span>
+      </div>
+      <div class="source">Source: <a href="https://github.com/PawanITC/Docker_Demo">github.com/PawanITC/Docker_Demo</a> · modules/02-installation.md</div>
+    </div>
+    <div class="hero-term">
+      <div class="bar"><i style="background:#FF5F56"></i><i style="background:#FFBD2E"></i><i style="background:#27C93F"></i><span class="fname">bash</span></div>
+<pre><span class="p">$</span> <span class="c">docker run hello-world</span>
+<span class="o">Unable to find image 'hello-world:latest'</span>
+<span class="o">latest: Pulling from library/hello-world</span>
+<span class="o">Status: Downloaded newer image</span>
+
+<span class="ok">Hello from Docker!</span>
+<span class="o">This message shows that your</span>
+<span class="o">installation appears to be</span>
+<span class="o">working correctly.</span></pre>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== LEARNING OBJECTIVES ===================== -->
+<section id="objectives" class="alt">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="eyebrow">Learning Objectives</div>
+      <h2>What you will learn in this module</h2>
+    </div>
+    <div class="grid g3">
+      <div class="card reveal"><div class="obj"><div class="n">01</div><p>Install Docker on your operating system.</p></div></div>
+      <div class="card reveal"><div class="obj"><div class="n">02</div><p>Verify the installation and run your first container.</p></div></div>
+      <div class="card reveal"><div class="obj"><div class="n">03</div><p>Understand Docker Desktop vs Docker Engine.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SECTION DIVIDER ===================== -->
+<div class="divider" id="which">
+  <div class="orb"></div>
+  <div class="wrap reveal">
+    <div class="step">Step 01 / 04</div>
+    <h2>Which Docker do I need?</h2>
+    <p>Two products, one engine underneath. The right choice depends on whether you're on a desktop or a headless Linux server.</p>
+  </div>
+</div>
+
+<!-- ===================== DESKTOP VS ENGINE ===================== -->
+<section>
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker-row"><span class="eyebrow" style="margin:0">Desktop vs Engine</span><span class="pager">01 / 09</span></div>
+      <h2>Same engine, two ways to run it.</h2>
+      <p class="lead">Both give you the Docker CLI and container runtime. Docker Desktop wraps the engine in a friendly app with a GUI for laptops; Docker Engine is the bare engine you install directly on Linux servers.</p>
+    </div>
+
+    <div class="grid g2" style="align-items:start;margin-bottom:28px">
+      <div class="card reveal">
+        <div class="icon-badge">🖥️</div>
+        <h3>Docker Desktop</h3>
+        <p style="font-weight:700;color:var(--text);margin-bottom:8px">Easiest option for Windows &amp; macOS</p>
+        <p>A single installer that bundles the engine, CLI, Compose, and a graphical dashboard. On Windows/macOS it runs a small Linux VM behind the scenes so Linux containers work natively.</p>
+      </div>
+      <div class="card reveal">
+        <div class="icon-badge">🐧</div>
+        <h3><span class="kw-info">Docker Engine<button class="info-chip" type="button" data-target="aws-docker-detail" aria-label="Deep dive: run Docker in AWS and control it from your Windows machine">i</button></span></h3>
+        <p style="font-weight:700;color:var(--text);margin-bottom:8px">The core engine for Linux servers</p>
+        <p>Just the daemon, CLI, and containerd — no GUI. This is what you install on production Linux hosts and cloud VMs, where it runs directly on the host kernel.</p>
+      </div>
+    </div>
+
+    <div class="tablewrap reveal">
+      <table>
+        <thead><tr><th>&nbsp;</th><th>Docker Desktop</th><th class="col-docker">Docker Engine</th></tr></thead>
+        <tbody>
+          <tr><td>Best for</td><td>Windows &amp; macOS (and Linux desktops)</td><td class="col-docker">Linux servers &amp; cloud VMs</td></tr>
+          <tr><td>Graphical UI</td><td>Yes — dashboard &amp; settings</td><td class="col-docker">No — CLI only</td></tr>
+          <tr><td>Includes Compose</td><td>Yes, built in</td><td class="col-docker">Yes (plugin)</td></tr>
+          <tr><td>Runs Linux containers via</td><td>A lightweight Linux VM</td><td class="col-docker">The host kernel directly</td></tr>
+          <tr><td>Resource controls</td><td>GUI sliders (CPU/memory)</td><td class="col-docker">Host / systemd config</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout reveal" style="margin-top:24px">
+      <span class="mark">💡</span>
+      <p>On a laptop? Install <b>Docker Desktop</b>. Deploying to a Linux server? Install <b>Docker Engine</b>. Either way you get the same <code>docker</code> command and run the same images.</p>
+    </div>
+
+    <div class="deepdive reveal" style="margin-top:24px">
+      <div class="dd-ic">☁️</div>
+      <div class="dd-txt">
+        <div class="k">Cloud Deep Dive</div>
+        <h4>Docker runs in AWS — controlled from your Windows machine</h4>
+        <p>EC2, Spot, Lightsail, ECR + EC2, and ECS/Fargate — with complete Terraform files, every command, and the EC2-vs-Fargate distinction.</p>
+      </div>
+      <button type="button" class="info-chip-open" data-target="aws-docker-detail">Open deep dive →</button>
+    </div>
+
+    <!-- ===== Hidden deep-dive content: run Docker in AWS, control from Windows ===== -->
+    <div class="info-detail" id="aws-docker-detail" data-title="Run Docker in AWS, control it from your Windows machine" data-tag="Cloud Deep Dive" data-tagclass="docker">
+      <p>If the requirement is <b>"Docker runs only in AWS, but I control/test it from my Windows local machine"</b>, there are several practical approaches. The key distinction:</p>
+      <ul>
+        <li><b>EC2 / Lightsail VM</b> — the Docker daemon runs on a VM; your local Docker CLI can control it over SSH.</li>
+        <li><b>Fargate</b> — there is no Docker daemon you control. You build/push an image and ECS runs it.</li>
+        <li><b>Spot EC2</b> — same Docker workflow as EC2, but the machine can be interrupted.</li>
+      </ul>
+      <div class="info-note"><p>Docker officially supports connecting the local CLI to a remote Docker daemon through <b>SSH</b>, so you don't need to expose Docker's TCP port publicly.</p></div>
+
+      <h4>Approaches at a glance</h4>
+      <table>
+        <thead><tr><th>Approach</th><th>Local Docker control</th><th>Cost</th><th>Setup</th><th>AWS learning</th></tr></thead>
+        <tbody>
+          <tr><td>EC2 On-Demand</td><td>Excellent</td><td>$</td><td>Easy</td><td>Excellent</td></tr>
+          <tr><td>EC2 Spot</td><td>Excellent</td><td>Lowest EC2</td><td>Medium</td><td>Excellent</td></tr>
+          <tr><td>Lightsail VM</td><td>Good</td><td>$</td><td>Easiest</td><td>Moderate</td></tr>
+          <tr><td>Fargate</td><td>No daemon control</td><td>$$</td><td>Medium</td><td>Excellent</td></tr>
+          <tr><td>ECR + EC2</td><td>Excellent</td><td>$</td><td>Medium</td><td>Excellent</td></tr>
+        </tbody>
+      </table>
+      <p>EC2 On-Demand is billed only while running (per-second billing, 60-second minimum), so stopping the instance when you're done is useful for a dev environment.</p>
+
+      <h4>1. EC2 — simplest and most flexible</h4>
+      <pre>Windows Laptop
+     │  Docker CLI + SSH
+     ▼
+AWS EC2
+     └── Docker Engine
+           ├── Spring Boot
+           ├── PostgreSQL
+           ├── Redis
+           └── Kafka</pre>
+      <p>For Mumbai, <code>t4g</code> is available in <code>ap-south-1</code>.</p>
+      <h5>Step 1 — Create EC2</h5>
+      <p>AWS Console → EC2 → Launch instance. Name <code>docker-lab</code>, AMI <b>Ubuntu Server 24.04 LTS</b>, instance <b>t4g.micro</b> (ARM64), storage <b>20 GB gp3</b>. If your images are x86-only, choose <code>t3.micro</code> instead.</p>
+      <h5>Step 2 — Security Group</h5>
+      <p>For basic Docker remote management you only need <b>SSH — TCP 22 — Source: My IP</b>. To test a Spring Boot app from your laptop/browser add <b>TCP 8080 — My IP</b>. For a public web app you could add <b>TCP 80 / 443</b>.</p>
+      <div class="info-note warn"><p><b>Do not open Docker port 2375 to the Internet.</b> Docker warns that insecure remote daemon access can allow unauthorized, potentially root-level control.</p></div>
+      <h5>Step 3 — Connect to EC2 (PowerShell)</h5>
+      <pre>ssh -i C:\keys\docker-lab.pem ubuntu@&lt;EC2_PUBLIC_IP&gt;</pre>
+      <h5>Step 4 — Install Docker (on EC2)</h5>
+      <pre>sudo apt update
+sudo apt install -y docker.io
+sudo systemctl enable --now docker
+
+# run docker without sudo
+sudo usermod -aG docker ubuntu
+exit                                   # log out, then reconnect
+ssh -i C:\keys\docker-lab.pem ubuntu@&lt;EC2_PUBLIC_IP&gt;
+
+# test
+docker version
+docker run --rm hello-world</pre>
+
+      <h4>2. Control EC2 Docker directly from Windows</h4>
+      <p>On your local Windows machine you need the Docker CLI. Then create a Docker context pointing at the remote daemon over SSH:</p>
+      <pre>docker context create aws-docker `
+  --docker "host=ssh://ubuntu@&lt;EC2_PUBLIC_IP&gt;"
+
+docker context use aws-docker
+docker context show          # → aws-docker
+docker ps                    # lists containers running on EC2, not locally</pre>
+      <p>Docker's SSH context forwards requests to the remote Docker socket. Now run a container <b>from your laptop</b> — it runs on EC2:</p>
+      <pre>docker run -d --name nginx -p 8080:80 nginx
+docker ps
+# open http://&lt;EC2_PUBLIC_IP&gt;:8080</pre>
+      <pre>docker run -d --name myapp -p 8080:8080 my-spring-app:latest</pre>
+      <p>The image must be available to the remote daemon. For production-style deployments, use <b>ECR</b> rather than relying on a local image.</p>
+
+      <h4>3. ECR + EC2 — the better workflow</h4>
+      <pre>Windows ──docker build──▶ Image ──docker push──▶ AWS ECR ──docker pull──▶ EC2 ──▶ Container</pre>
+      <p><b>Step 1</b> — ECR → Repositories → Create repository → <code>my-spring-app</code>.</p>
+      <pre># Step 2 — build locally
+docker build -t my-spring-app .
+
+# Step 3 — authenticate to ECR
+aws ecr get-login-password --region ap-south-1 | \
+docker login --username AWS --password-stdin \
+  &lt;ACCOUNT_ID&gt;.dkr.ecr.ap-south-1.amazonaws.com
+
+# Step 4 — tag
+docker tag my-spring-app:latest \
+  &lt;ACCOUNT_ID&gt;.dkr.ecr.ap-south-1.amazonaws.com/my-spring-app:latest
+
+# Step 5 — push
+docker push \
+  &lt;ACCOUNT_ID&gt;.dkr.ecr.ap-south-1.amazonaws.com/my-spring-app:latest</pre>
+      <pre># Step 6 — on EC2: login, pull, run
+aws ecr get-login-password --region ap-south-1 | \
+docker login --username AWS --password-stdin \
+  &lt;ACCOUNT_ID&gt;.dkr.ecr.ap-south-1.amazonaws.com
+
+docker pull &lt;ACCOUNT_ID&gt;.dkr.ecr.ap-south-1.amazonaws.com/my-spring-app:latest
+docker run -d --name myapp -p 8080:8080 \
+  &lt;ACCOUNT_ID&gt;.dkr.ecr.ap-south-1.amazonaws.com/my-spring-app:latest
+# test http://&lt;EC2_PUBLIC_IP&gt;:8080</pre>
+
+      <h4>4. Lightsail — simpler alternative</h4>
+      <pre>Windows ──SSH──▶ Lightsail Linux VM ──▶ Docker ──▶ Container</pre>
+      <p>AWS Console → Lightsail → Create instance → Linux/Unix → Ubuntu → smallest suitable plan. Connect via the Lightsail browser SSH console, then:</p>
+      <pre>sudo apt update
+sudo apt install -y docker.io
+sudo systemctl enable --now docker
+docker run -d -p 80:80 nginx
+# access http://&lt;LIGHTSAIL_PUBLIC_IP&gt;</pre>
+      <p>You can also use <code>ssh ubuntu@&lt;LIGHTSAIL_IP&gt;</code> or the same Docker SSH-context approach. <b>Advantage:</b> simpler UI/networking. <b>Disadvantage:</b> EC2 gives more flexibility for AWS learning.</p>
+
+      <h4>5. Fargate — no EC2 to manage</h4>
+      <pre>Windows ──docker build──▶ ECR ──▶ ECS ──▶ Fargate ──▶ Container</pre>
+      <p>There is <b>no VM to SSH into</b> and no Docker daemon for your local CLI to control.</p>
+      <pre># Step 1 — build
+docker build -t myapp .
+
+# Step 2 — push to ECR
+docker tag myapp:latest &lt;ACCOUNT_ID&gt;.dkr.ecr.ap-south-1.amazonaws.com/myapp:latest
+docker push &lt;ACCOUNT_ID&gt;.dkr.ecr.ap-south-1.amazonaws.com/myapp:latest</pre>
+      <p><b>Step 3</b> — ECS → Clusters → Create → ECS cluster. <b>Step 4</b> — create a task definition (Launch type: Fargate, small CPU/memory, container image from ECR, container port 8080). <b>Step 5</b> — create an ECS Service:</p>
+      <pre>Cluster → Service → Task → Fargate → Container</pre>
+      <p>Test (if you assign a public endpoint/load balancer):</p>
+      <pre>curl https://&lt;endpoint&gt;/api/health</pre>
+      <div class="info-note"><p><b>Cost note:</b> for one tiny dev container, Fargate isn't necessarily cheapest — you can also pay for networking, load-balancing and CloudWatch logging. ECS Express Mode simplifies deployment but you still pay for the underlying Fargate, load balancer, logs and data transfer.</p></div>
+
+      <h4>6. EC2 Spot — cheapest EC2 approach</h4>
+      <pre>Spot EC2 → Ubuntu → Docker → Spring Boot</pre>
+      <p>Docker install and usage are <b>exactly the same as EC2</b>; only the purchase option differs. AWS can interrupt Spot when capacity is needed (documented up to 90% savings), and gives an interruption notice before reclaiming capacity.</p>
+      <p><b>Good for:</b> learning, development, temporary testing, batch, non-critical environments. <b>Not for:</b> production databases, important persistent services, anything that cannot tolerate interruption.</p>
+
+      <h4>7. What I would use for development</h4>
+      <p>For Spring Boot + PostgreSQL + Redis + Kafka + Angular/React:</p>
+      <pre>Option A (simplest)    EC2 t4g.micro → Docker Compose (Spring Boot + PostgreSQL + Redis)
+Option B (cheapest)    EC2 → Docker Compose (+ Kafka) — scale the instance up when needed
+Option C (AWS learning) Local Windows → docker build + AWS CLI → ECR → ECS → Fargate</pre>
+      <p>Kafka + PostgreSQL + Redis + Spring Boot together may be too much for a tiny instance — you'd want more RAM if running them all at once. If your goal is specifically learning AWS container deployment, Option C is better than simply getting the cheapest Docker server.</p>
+
+      <h4>Recommended starting point</h4>
+      <pre>            YOUR WINDOWS PC
+                  │  Docker CLI / AWS CLI
+                  │  SSH / ECR
+                  ▼
+          ┌───────────────┐
+          │   AWS EC2     │
+          │ t4g.micro     │
+          │ Docker Engine │
+          │   ├─ Spring   │
+          │   ├─ Redis    │
+          │   └─ DB       │
+          └───────────────┘</pre>
+      <p>Don't expose the Docker daemon to the Internet — use SSH for remote control. Once comfortable, progress <code>Docker build → ECR → ECS/Fargate</code>. If your priority is absolute lowest cost, choose <b>EC2 Spot + Docker</b>; for stable and simple, use <b>EC2 On-Demand + Docker</b> and stop the instance when idle.</p>
+
+      <hr style="border:none;border-top:1px solid var(--line);margin:26px 0">
+      <h4>Terraform — infrastructure for each option</h4>
+      <p>Your Windows machine is the <b>control machine</b>; Docker itself runs in AWS. Keep each option in its own directory so you can destroy experiments independently.</p>
+      <pre>aws-docker-lab/
+├── 01-ec2-docker/       (main.tf variables.tf outputs.tf terraform.tfvars)
+├── 02-ec2-spot-docker/
+├── 03-lightsail-vm/
+├── 04-lightsail-container/
+└── 05-ecs-fargate/</pre>
+
+      <h5>Option A — EC2 + Docker · variables.tf</h5>
+      <pre>variable "aws_region"    { type = string  default = "ap-south-1" }
+variable "instance_type" { type = string  default = "t4g.micro" }
+variable "key_name"      { type = string  description = "Existing EC2 key pair name" }
+variable "my_ip"         { type = string  description = "Your public IP, e.g. 49.x.x.x/32" }
+variable "root_volume_size" { type = number default = 20 }</pre>
+
+      <h5>Option A — main.tf</h5>
+      <pre>terraform {
+  required_version = "&gt;= 1.6.0"
+  required_providers {
+    aws = { source = "hashicorp/aws"  version = "~&gt; 6.0" }
+  }
+}
+
+provider "aws" { region = var.aws_region }
+
+# ---- VPC ----
+resource "aws_vpc" "main" {
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_support   = true
+  enable_dns_hostnames = true
+  tags = { Name = "docker-lab-vpc" }
+}
+
+resource "aws_internet_gateway" "main" {
+  vpc_id = aws_vpc.main.id
+  tags   = { Name = "docker-lab-igw" }
+}
+
+resource "aws_subnet" "public" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.1.0/24"
+  availability_zone       = "${var.aws_region}a"
+  map_public_ip_on_launch = true
+  tags = { Name = "docker-lab-public-subnet" }
+}
+
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.main.id
+  }
+  tags = { Name = "docker-lab-public-route" }
+}
+
+resource "aws_route_table_association" "public" {
+  subnet_id      = aws_subnet.public.id
+  route_table_id = aws_route_table.public.id
+}
+
+# ---- Security Group ----
+resource "aws_security_group" "docker" {
+  name        = "docker-lab-sg"
+  description = "Security group for Docker EC2"
+  vpc_id      = aws_vpc.main.id
+
+  ingress { description = "SSH"         from_port = 22   to_port = 22   protocol = "tcp" cidr_blocks = [var.my_ip] }
+  ingress { description = "Application" from_port = 8080 to_port = 8080 protocol = "tcp" cidr_blocks = [var.my_ip] }
+  ingress { description = "HTTP"        from_port = 80   to_port = 80   protocol = "tcp" cidr_blocks = [var.my_ip] }
+  egress  { from_port = 0 to_port = 0 protocol = "-1" cidr_blocks = ["0.0.0.0/0"] }
+
+  tags = { Name = "docker-lab-sg" }
+}
+
+# ---- Ubuntu ARM64 AMI ----
+data "aws_ami" "ubuntu_arm" {
+  most_recent = true
+  owners      = ["099720109477"]
+  filter { name = "name"                values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-arm64-server-*"] }
+  filter { name = "architecture"        values = ["arm64"] }
+  filter { name = "virtualization-type" values = ["hvm"] }
+}
+
+# ---- IAM role + instance profile ----
+resource "aws_iam_role" "ec2" {
+  name = "docker-lab-ec2-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "ec2.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_instance_profile" "ec2" {
+  name = "docker-lab-ec2-profile"
+  role = aws_iam_role.ec2.name
+}
+
+# ---- EC2 ----
+resource "aws_instance" "docker" {
+  ami                    = data.aws_ami.ubuntu_arm.id
+  instance_type          = var.instance_type
+  subnet_id              = aws_subnet.public.id
+  key_name               = var.key_name
+  vpc_security_group_ids = [aws_security_group.docker.id]
+  iam_instance_profile   = aws_iam_instance_profile.ec2.name
+
+  root_block_device {
+    volume_type = "gp3"
+    volume_size = var.root_volume_size
+  }
+
+  user_data = &lt;&lt;-EOF
+              #!/bin/bash
+              apt-get update
+              apt-get install -y docker.io
+              systemctl enable docker
+              systemctl start docker
+              usermod -aG docker ubuntu
+              docker --version
+              EOF
+
+  tags = { Name = "docker-lab" }
+}</pre>
+
+      <h5>Option A — outputs.tf</h5>
+      <pre>output "instance_id" { value = aws_instance.docker.id }
+output "public_ip"   { value = aws_instance.docker.public_ip }
+output "ssh_command" { value = "ssh -i &lt;PATH_TO_KEY.pem&gt; ubuntu@${aws_instance.docker.public_ip}" }
+output "docker_ssh_host" { value = "ubuntu@${aws_instance.docker.public_ip}" }</pre>
+
+      <h5>Option A — terraform.tfvars</h5>
+      <pre>aws_region       = "ap-south-1"
+instance_type    = "t4g.micro"
+key_name         = "my-existing-key"
+my_ip            = "49.123.45.67/32"   # never 0.0.0.0/0 for SSH
+root_volume_size = 20</pre>
+
+      <h5>Option A — create it</h5>
+      <pre>aws configure
+aws sts get-caller-identity     # confirm the intended account
+terraform init
+terraform validate
+terraform plan
+terraform apply                 # type: yes</pre>
+      <p>Connect using the output public IP, then configure remote Docker control from Windows via an SSH config entry <code>C:\Users\&lt;username&gt;\.ssh\config</code>:</p>
+      <pre>Host aws-docker
+    HostName 13.x.x.x
+    User ubuntu
+    IdentityFile C:\Users\&lt;username&gt;\.ssh\my-key.pem</pre>
+      <pre>ssh aws-docker                                   # test
+docker context create aws-docker `
+  --docker "host=ssh://aws-docker"
+docker context use aws-docker
+docker ps        # now querying the EC2 Docker Engine
+docker run -d --name nginx -p 8080:80 nginx
+# open http://&lt;EC2_PUBLIC_IP&gt;:8080</pre>
+
+      <h5>Option B — EC2 Spot (add to the aws_instance resource)</h5>
+      <pre>instance_market_options {
+  market_type = "spot"
+  spot_options {
+    instance_interruption_behavior = "stop"
+  }
+}</pre>
+      <p>Everything else stays the same. Spot suits development, testing, temporary environments and batch — because interruption is possible.</p>
+
+      <h5>Option C — Lightsail VM</h5>
+      <pre>resource "aws_lightsail_instance" "docker" {
+  name              = "docker-lab"
+  availability_zone = "ap-south-1a"
+  blueprint_id      = "ubuntu_24_04"
+  bundle_id         = "nano_3_0"
+}</pre>
+      <p>Simpler, but EC2 gives more control and is more representative of typical AWS infrastructure.</p>
+
+      <h5>Option D — Lightsail Container Service</h5>
+      <pre>provider "aws" { region = "ap-south-1" }
+
+resource "aws_lightsail_container_service" "app" {
+  name  = "docker-lab"
+  power = "nano"
+  scale = 1
+}</pre>
+      <p>You don't SSH into a server. Image publishing uses the Lightsail control plugin:</p>
+      <pre>docker build → local image → lightsail push-container-image → Lightsail Container Service</pre>
+      <p>Good if you don't want EC2, SSH, a Docker Engine, OS updates, or Docker installation.</p>
+
+      <h5>Option E — ECS + Fargate · main.tf</h5>
+      <pre>terraform {
+  required_providers {
+    aws = { source = "hashicorp/aws"  version = "~&gt; 6.0" }
+  }
+}
+
+provider "aws" { region = "ap-south-1" }
+
+# ---- VPC + networking ----
+resource "aws_vpc" "main" {
+  cidr_block           = "10.10.0.0/16"
+  enable_dns_support   = true
+  enable_dns_hostnames = true
+}
+resource "aws_subnet" "public" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.10.1.0/24"
+  availability_zone       = "ap-south-1a"
+  map_public_ip_on_launch = true
+}
+resource "aws_internet_gateway" "main" { vpc_id = aws_vpc.main.id }
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.main.id
+  route { cidr_block = "0.0.0.0/0"  gateway_id = aws_internet_gateway.main.id }
+}
+resource "aws_route_table_association" "public" {
+  subnet_id      = aws_subnet.public.id
+  route_table_id = aws_route_table.public.id
+}
+
+# ---- Security Group ----
+resource "aws_security_group" "ecs" {
+  name   = "fargate-docker-sg"
+  vpc_id = aws_vpc.main.id
+  ingress { from_port = 8080 to_port = 8080 protocol = "tcp" cidr_blocks = ["0.0.0.0/0"] }
+  egress  { from_port = 0    to_port = 0    protocol = "-1"  cidr_blocks = ["0.0.0.0/0"] }
+}
+
+# ---- ECR ----
+resource "aws_ecr_repository" "app" {
+  name                 = "docker-lab-app"
+  image_tag_mutability = "MUTABLE"
+  image_scanning_configuration { scan_on_push = true }
+}
+
+# ---- ECS cluster ----
+resource "aws_ecs_cluster" "main" { name = "docker-lab-cluster" }
+
+# ---- IAM execution role ----
+resource "aws_iam_role" "ecs_execution" {
+  name = "docker-lab-ecs-execution"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "ecs-tasks.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+    }]
+  })
+}
+resource "aws_iam_role_policy_attachment" "ecs_execution" {
+  role       = aws_iam_role.ecs_execution.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+# ---- Task definition ----
+resource "aws_ecs_task_definition" "app" {
+  family                   = "docker-lab-app"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+  cpu                      = "256"
+  memory                   = "512"
+  execution_role_arn       = aws_iam_role.ecs_execution.arn
+
+  container_definitions = jsonencode([{
+    name      = "app"
+    image     = "${aws_ecr_repository.app.repository_url}:latest"
+    essential = true
+    portMappings = [{ containerPort = 8080  protocol = "tcp" }]
+  }])
+}
+
+# ---- Service ----
+resource "aws_ecs_service" "app" {
+  name            = "docker-lab-service"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.app.arn
+  desired_count   = 1
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets          = [aws_subnet.public.id]
+    security_groups  = [aws_security_group.ecs.id]
+    assign_public_ip = true
+  }
+}</pre>
+      <p>Fargate requires compatible CPU/memory combinations and uses <code>awsvpc</code> networking.</p>
+      <h5>Option E — apply, then build &amp; push the image</h5>
+      <pre>terraform init
+terraform plan
+terraform apply
+
+# ECS needs an image in ECR first:
+docker build -t docker-lab-app .
+aws ecr get-login-password --region ap-south-1 | \
+docker login --username AWS --password-stdin \
+  &lt;ACCOUNT_ID&gt;.dkr.ecr.ap-south-1.amazonaws.com
+docker tag  docker-lab-app:latest &lt;ACCOUNT_ID&gt;.dkr.ecr.ap-south-1.amazonaws.com/docker-lab-app:latest
+docker push &lt;ACCOUNT_ID&gt;.dkr.ecr.ap-south-1.amazonaws.com/docker-lab-app:latest</pre>
+      <div class="info-note"><p><b>Fargate gotcha:</b> pushing a new image with the same <code>latest</code> tag does not automatically update an already-running task. Force a new deployment:</p></div>
+      <pre>aws ecs update-service \
+  --cluster docker-lab-cluster \
+  --service docker-lab-service \
+  --force-new-deployment</pre>
+      <h5>Testing Fargate</h5>
+      <pre>aws ecs list-tasks --cluster docker-lab-cluster
+aws ecs describe-tasks --cluster docker-lab-cluster --tasks &lt;TASK_ARN&gt;
+# find networkInterfaces → public IP, then:
+# http://&lt;PUBLIC_IP&gt;:8080</pre>
+      <p>For a real application, put an Application Load Balancer in front instead of exposing the task directly.</p>
+
+      <h4>EC2 vs Fargate — the key difference</h4>
+      <p>With <b>EC2</b> you run real Docker commands against the remote daemon: <code>docker ps</code>, <code>docker run</code>, <code>docker stop</code>, <code>docker logs</code>, <code>docker exec</code>. With <b>Fargate</b> you do <i>not</i> — instead: <code>ECR → task definition → service → task</code>. This distinction drives the architecture choice.</p>
+
+      <h4>Destroying everything</h4>
+      <pre>cd 01-ec2-docker      && terraform destroy    # EC2, IAM, SG, subnet, RT, IGW, VPC
+cd 02-ec2-spot-docker && terraform destroy
+cd 03-lightsail-vm    && terraform destroy
+cd 05-ecs-fargate     && terraform destroy    # important — don't leave a running service</pre>
+
+      <h4>What to build first (recommended order)</h4>
+      <pre>Step 1  EC2 + Docker      Terraform → VPC → EC2 → Docker → Nginx
+Step 2  Remote Docker CLI Windows CLI ──SSH──▶ EC2 Docker Engine (ps/run/logs/stop/rm)
+Step 3  ECR               Windows → docker build → ECR → EC2 → docker pull
+Step 4  ECS/Fargate       Docker → ECR → ECS → Fargate</pre>
+      <div class="info-note"><p><b>Corrections:</b> don't automatically pick <code>t4g.micro</code> for Spring Boot + PostgreSQL + Redis + Kafka together — container count and memory matter more than CPU, and <code>t4g</code> is ARM64 so images must support ARM64. Start with <code>t4g.micro → Docker → nginx</code>, then Spring Boot, then scale up before adding PostgreSQL/Redis/Kafka. Also don't use a NAT Gateway for this lab — a public subnet with an Internet Gateway is simpler and avoids an expensive component.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SECTION DIVIDER ===================== -->
+<div class="divider" id="install">
+  <div class="orb"></div>
+  <div class="wrap reveal">
+    <div class="step">Step 02 / 04</div>
+    <h2>Installation</h2>
+    <p>Pick your operating system below. Windows and macOS use the Desktop installer; Linux uses the official convenience script.</p>
+  </div>
+</div>
+
+<!-- ===================== INSTALL (TABBED BY OS) ===================== -->
+<section>
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker-row"><span class="eyebrow" style="margin:0">Installation</span><span class="pager">02 / 09</span></div>
+      <h2>Install Docker on your OS.</h2>
+    </div>
+
+    <div class="ostabs reveal" role="tablist">
+      <button class="ostab active" data-os="win" role="tab" aria-selected="true">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.5L10.5 4.4v7.1H3V5.5zM11.5 4.3L21 3v8.5h-9.5V4.3zM3 12.5h7.5v7.1L3 18.5v-6zM11.5 12.5H21V21l-9.5-1.3v-7.2z"/></svg>
+        Windows
+      </button>
+      <button class="ostab" data-os="mac" role="tab" aria-selected="false">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16.4 12.9c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9s-1.8-.8-3-.8c-1.5 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.2 0 2-1.1 2.8-2.2.9-1.3 1.2-2.5 1.3-2.6-.1 0-2.5-1-2.5-3.8zM14.2 5.2c.6-.8 1-1.9.9-3-1 0-2.1.7-2.8 1.5-.6.7-1.1 1.8-1 2.8 1.1.1 2.2-.5 2.9-1.3z"/></svg>
+        macOS
+      </button>
+      <button class="ostab" data-os="linux" role="tab" aria-selected="false">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c-1.7 0-3 1.5-3 3.3 0 1 .1 1.9.1 2.9 0 .8-.6 1.4-1.1 2.1-.8 1.1-1.7 2.2-1.7 3.7 0 .6.1 1.1.3 1.6-.4.5-.7 1.1-.7 1.8 0 .3-.4.5-.6.8-.3.4-.2 1 .2 1.3.5.4 1.2.4 1.8.6.7.2 1.3.6 2 .8.5.1 1 0 1.3-.4.5.1 1 .2 1.5.2s1-.1 1.5-.2c.3.4.8.5 1.3.4.7-.2 1.3-.6 2-.8.6-.2 1.3-.2 1.8-.6.4-.3.5-.9.2-1.3-.2-.3-.6-.5-.6-.8 0-.7-.3-1.3-.7-1.8.2-.5.3-1 .3-1.6 0-1.5-.9-2.6-1.7-3.7-.5-.7-1.1-1.3-1.1-2.1 0-1 .1-1.9.1-2.9C15 3.5 13.7 2 12 2zm-1.2 4c.4 0 .7.4.7.9s-.3.9-.7.9-.7-.4-.7-.9.3-.9.7-.9zm2.4 0c.4 0 .7.4.7.9s-.3.9-.7.9-.7-.4-.7-.9.3-.9.7-.9z"/></svg>
+        Linux (Ubuntu/Debian)
+      </button>
+    </div>
+
+    <!-- Windows -->
+    <div class="ospanel active" data-panel="win">
+      <div class="grid g2" style="align-items:start">
+        <div class="card reveal">
+          <h3 style="margin-bottom:16px">Install Docker Desktop on Windows</h3>
+          <ol class="steps">
+            <li>Download <b>Docker Desktop</b> from <a href="https://www.docker.com/products/docker-desktop" target="_blank" rel="noopener">docker.com/products/docker-desktop</a>.</li>
+            <li>Run the installer and follow the prompts.</li>
+            <li>When asked, enable <b>WSL 2</b> — the recommended backend.</li>
+            <li>Launch Docker Desktop and wait for the whale icon to read <b>"Docker Desktop is running"</b>.</li>
+          </ol>
+        </div>
+        <div class="callout reveal" style="align-self:stretch">
+          <span class="mark">🐳</span>
+          <p><b>Why WSL 2?</b> Windows can't run Linux containers natively, so Docker Desktop uses the <b>Windows Subsystem for Linux 2</b> — a real Linux kernel — as its backend. It's faster and lighter than the older Hyper-V VM approach.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- macOS -->
+    <div class="ospanel" data-panel="mac">
+      <div class="grid g2" style="align-items:start">
+        <div class="card reveal">
+          <h3 style="margin-bottom:16px">Install Docker Desktop on macOS</h3>
+          <ol class="steps">
+            <li>Download <b>Docker Desktop</b> from <a href="https://www.docker.com/products/docker-desktop" target="_blank" rel="noopener">docker.com/products/docker-desktop</a>.</li>
+            <li>Choose the build for your chip — <b>Apple Silicon</b> (M-series) or <b>Intel</b>.</li>
+            <li>Open the <code>.dmg</code> and drag Docker into <b>Applications</b>.</li>
+            <li>Launch Docker and wait for the whale icon to say <b>"Docker Desktop is running"</b>.</li>
+          </ol>
+        </div>
+        <div class="callout reveal" style="align-self:stretch">
+          <span class="mark">🍎</span>
+          <p><b>Same idea as Windows.</b> macOS also can't run Linux containers directly, so Docker Desktop runs a small Linux VM under the hood. Pick the installer that matches your CPU or the app will run slowly under emulation.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Linux -->
+    <div class="ospanel" data-panel="linux">
+      <div class="codecard reveal" style="margin-bottom:20px">
+        <div class="bar"><span class="dots"><i style="background:#FF5F56"></i><i style="background:#FFBD2E"></i><i style="background:#27C93F"></i></span><span class="fname">install-docker.sh</span><button class="copy" type="button">Copy</button></div>
+<pre><code><span class="c-com"># Remove any old versions</span>
+<span class="c-key">sudo</span> apt-get remove docker docker-engine docker.io containerd runc
+
+<span class="c-com"># Install using the official convenience script</span>
+curl <span class="c-flag">-fsSL</span> https://get.docker.com <span class="c-flag">-o</span> get-docker.sh
+<span class="c-key">sudo</span> sh get-docker.sh
+
+<span class="c-com"># (Optional) Run docker without sudo</span>
+<span class="c-key">sudo</span> usermod <span class="c-flag">-aG</span> docker <span class="c-str">$USER</span>
+newgrp docker</code></pre>
+      </div>
+      <div class="callout reveal">
+        <span class="mark">🔎</span>
+        <p><b>What just happened?</b> The convenience script adds Docker's official package repository and installs the engine, CLI, and containerd. Adding your user to the <code>docker</code> group lets you run <code>docker</code> commands without <code>sudo</code>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== SECTION DIVIDER ===================== -->
+<div class="divider" id="verify">
+  <div class="orb"></div>
+  <div class="wrap reveal">
+    <div class="step">Step 03 / 04</div>
+    <h2>Verify &amp; explore</h2>
+    <p>Three hands-on practicals: confirm the install, run your first container, and learn the commands that show what Docker is doing.</p>
+  </div>
+</div>
+
+<!-- ===================== PRACTICAL 2.1 ===================== -->
+<section>
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker-row"><span class="eyebrow" style="margin:0">Practical 2.1</span><span class="pager">03 / 09</span></div>
+      <h2>Verify the installation.</h2>
+      <p class="lead">Goal: make sure Docker is installed and running.</p>
+    </div>
+
+    <div class="practical reveal">
+      <div class="phead"><span class="tag">2.1</span><div><h3>Verify the installation</h3><p>Three commands that go from "is it installed?" to a full end-to-end test.</p></div></div>
+      <div class="pbody">
+        <div class="codecard">
+          <div class="bar"><span class="dots"><i style="background:#FF5F56"></i><i style="background:#FFBD2E"></i><i style="background:#27C93F"></i></span><span class="fname">bash</span><button class="copy" type="button">Copy</button></div>
+<pre><code>docker <span class="c-flag">--version</span>
+docker compose version
+docker run hello-world</code></pre>
+        </div>
+        <div class="whathappened">
+          <div class="k">What just happened?</div>
+          <p><code>docker --version</code> prints the installed engine version.</p>
+          <p><code>docker compose version</code> confirms Compose (v2, built into the CLI) is available.</p>
+          <p><code>docker run hello-world</code> does a full end-to-end test: pull an image and run a container.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== PRACTICAL 2.2 ===================== -->
+<section class="alt" id="state">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker-row"><span class="eyebrow" style="margin:0">Practical 2.2</span><span class="pager">04 / 09</span></div>
+      <h2>Explore system state.</h2>
+      <p class="lead">Goal: learn the commands that show what Docker is doing right now.</p>
+    </div>
+
+    <div class="practical reveal">
+      <div class="phead"><span class="tag">2.2</span><div><h3>Explore system state</h3><p>Your everyday inspection toolkit — know these cold.</p></div></div>
+      <div class="pbody">
+        <div class="codecard">
+          <div class="bar"><span class="dots"><i style="background:#FF5F56"></i><i style="background:#FFBD2E"></i><i style="background:#27C93F"></i></span><span class="fname">bash</span><button class="copy" type="button">Copy</button></div>
+<pre><code>docker info            <span class="c-com"># System-wide info</span>
+docker ps              <span class="c-com"># Running containers</span>
+docker ps <span class="c-flag">-a</span>           <span class="c-com"># All containers (including stopped)</span>
+docker images          <span class="c-com"># Local images</span></code></pre>
+        </div>
+        <div class="whathappened">
+          <div class="k">What just happened?</div>
+          <p><code>docker info</code> summarizes the engine's configuration and resource usage.</p>
+          <p><code>docker ps</code> lists only <b>running</b> containers; adding <code>-a</code> includes <b>stopped</b> ones.</p>
+          <p><code>docker images</code> lists images cached locally.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid g3" style="margin-top:24px">
+      <div class="card reveal"><h3><code style="font-family:var(--mono);font-size:14px;color:var(--blue-600)">docker info</code></h3><p>Engine configuration, storage driver, and resource usage at a glance.</p></div>
+      <div class="card reveal"><h3><code style="font-family:var(--mono);font-size:14px;color:var(--blue-600)">docker ps -a</code></h3><p>Every container — running and stopped — with its status and ports.</p></div>
+      <div class="card reveal"><h3><code style="font-family:var(--mono);font-size:14px;color:var(--blue-600)">docker images</code></h3><p>All images pulled or built locally, with repository, tag, and size.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== PRACTICAL 2.3 ===================== -->
+<section id="resources">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker-row"><span class="eyebrow" style="margin:0">Practical 2.3</span><span class="pager">05 / 09</span></div>
+      <h2>Configure resources (Docker Desktop).</h2>
+      <p class="lead">Goal: adjust CPU/memory limits so builds don't starve your machine.</p>
+    </div>
+
+    <div class="grid g2" style="align-items:start">
+      <div class="card reveal">
+        <h3 style="margin-bottom:16px">Steps</h3>
+        <ol class="steps">
+          <li>Open Docker Desktop → <b>Settings</b> → <b>Resources</b>.</li>
+          <li>Set CPUs and Memory to sensible values (e.g. <b>4 CPUs, 4 GB</b>).</li>
+          <li>Click <b>Apply &amp; Restart</b>.</li>
+        </ol>
+      </div>
+      <div class="card reveal">
+        <h3 style="margin-bottom:16px">Resource limits</h3>
+        <div class="res">
+          <div class="slider">
+            <div class="lbl"><b>CPUs</b><span>4</span></div>
+            <div class="track"><div class="fillbar" style="width:50%"></div></div>
+            <p class="cap">of 8 available cores</p>
+          </div>
+          <div class="slider">
+            <div class="lbl"><b>Memory</b><span>4 GB</span></div>
+            <div class="track"><div class="fillbar" style="width:25%"></div></div>
+            <p class="cap">of 16 GB available</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout reveal" style="margin-top:24px">
+      <span class="mark">⚙️</span>
+      <p><b>What just happened?</b> Docker Desktop runs a lightweight Linux VM. These sliders control how much of your host's resources that VM — and therefore your containers — may use.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== KEY TAKEAWAYS ===================== -->
+<section class="alt" id="takeaways">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <div class="kicker-row"><span class="eyebrow" style="margin:0">Key Takeaways</span><span class="pager">06 / 09</span></div>
+      <h2>Three things to remember.</h2>
+    </div>
+    <div class="grid g3">
+      <div class="card reveal"><div class="take"><div class="chk">1</div><div><h4>Desktop for Windows/macOS; Engine for Linux servers.</h4><p>Same CLI and images either way — the difference is packaging and the GUI.</p></div></div></div>
+      <div class="card reveal"><div class="take"><div class="chk">2</div><div><h4><code style="font-family:var(--mono);font-size:13px;color:var(--blue-600)">docker run hello-world</code> is the definitive test.</h4><p>If it prints the greeting, your install can pull an image and run a container.</p></div></div></div>
+      <div class="card reveal"><div class="take"><div class="chk">3</div><div><h4>Know <code style="font-family:var(--mono);font-size:13px;color:var(--blue-600)">info</code>, <code style="font-family:var(--mono);font-size:13px;color:var(--blue-600)">ps</code>, <code style="font-family:var(--mono);font-size:13px;color:var(--blue-600)">ps -a</code>, and <code style="font-family:var(--mono);font-size:13px;color:var(--blue-600)">images</code> cold.</h4><p>They answer "what's running and what do I have?" — your daily inspection kit.</p></div></div></div>
+    </div>
+
+    <div style="margin-top:40px" class="reveal">
+      <div class="next">
+        <div>
+          <div class="k">Next Module</div>
+          <h3>Module 03 — Working with Images</h3>
+        </div>
+        <a class="btn" href="../modules/03-images.md">Continue →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="site">
+  <div class="wrap">Docker End-to-End Course · Module 02 — Installation &amp; Setup · <a href="https://github.com/PawanITC/Docker_Demo">github.com/PawanITC/Docker_Demo</a></div>
+</footer>
+
+<!-- ===================== DEEP-DIVE MODAL ===================== -->
+<div class="info-modal" id="infoModal" aria-hidden="true">
+  <div class="info-backdrop" data-close></div>
+  <div class="info-box" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
+    <button class="info-close" type="button" data-close aria-label="Close">✕</button>
+    <div class="info-head">
+      <span class="tl-tag" id="infoTag"></span>
+      <h3 id="infoTitle"></h3>
+    </div>
+    <div class="info-body" id="infoBody"></div>
+  </div>
+</div>
+
+<script>
+  // progress bar
+  const bar=document.getElementById('progress');
+  const onScroll=()=>{const h=document.documentElement;const sc=h.scrollTop;const max=h.scrollHeight-h.clientHeight;bar.style.width=(max>0?(sc/max*100):0)+'%';};
+  document.addEventListener('scroll',onScroll,{passive:true});onScroll();
+
+  // reveal on scroll
+  const io=new IntersectionObserver((es)=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});},{threshold:.12});
+  document.querySelectorAll('.reveal').forEach((el,i)=>{el.style.transitionDelay=(Math.min(i%6,5)*40)+'ms';io.observe(el);});
+
+  // OS tabs
+  (function(){
+    const tabs=document.querySelectorAll('.ostab');
+    const panels=document.querySelectorAll('.ospanel');
+    tabs.forEach(tab=>tab.addEventListener('click',()=>{
+      const os=tab.getAttribute('data-os');
+      tabs.forEach(t=>{const on=t===tab;t.classList.toggle('active',on);t.setAttribute('aria-selected',on);});
+      panels.forEach(p=>p.classList.toggle('active',p.getAttribute('data-panel')===os));
+    }));
+  })();
+
+  // copy-to-clipboard on code cards
+  document.querySelectorAll('.codecard .copy').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const code=btn.closest('.codecard').querySelector('pre').innerText;
+      navigator.clipboard.writeText(code).then(()=>{
+        const old=btn.textContent;btn.textContent='Copied ✓';btn.classList.add('done');
+        setTimeout(()=>{btn.textContent=old;btn.classList.remove('done');},1600);
+      }).catch(()=>{btn.textContent='Press Ctrl+C';});
+    });
+  });
+
+  // deep-dive modal — opened by the info chip and the banner button
+  (function(){
+    const modal=document.getElementById('infoModal');
+    if(!modal) return;
+    const tagEl=document.getElementById('infoTag');
+    const titleEl=document.getElementById('infoTitle');
+    const bodyEl=document.getElementById('infoBody');
+    let lastFocus=null;
+
+    function show(detail,trigger){
+      if(!detail) return;
+      titleEl.textContent=detail.getAttribute('data-title')||'';
+      const tagText=detail.getAttribute('data-tag');
+      if(tagText){tagEl.textContent=tagText;tagEl.className='tl-tag '+(detail.getAttribute('data-tagclass')||'docker');tagEl.style.display='';}
+      else{tagEl.style.display='none';}
+      bodyEl.innerHTML=detail.innerHTML;
+      bodyEl.scrollTop=0;
+      lastFocus=trigger||null;
+      modal.classList.add('open');
+      modal.setAttribute('aria-hidden','false');
+      document.body.classList.add('modal-lock');
+      modal.querySelector('.info-close').focus();
+    }
+    function close(){
+      modal.classList.remove('open');
+      modal.setAttribute('aria-hidden','true');
+      document.body.classList.remove('modal-lock');
+      if(lastFocus){lastFocus.focus();lastFocus=null;}
+    }
+
+    document.querySelectorAll('.info-chip,.info-chip-open').forEach(btn=>{
+      btn.addEventListener('click',e=>{
+        e.stopPropagation();
+        show(document.getElementById(btn.getAttribute('data-target')),btn);
+      });
+    });
+    modal.querySelectorAll('[data-close]').forEach(el=>el.addEventListener('click',close));
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&modal.classList.contains('open'))close();});
+  })();
+</script>
+</body>
+</html>
