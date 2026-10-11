@@ -175,14 +175,29 @@ resource "aws_instance" "docker" {
     volume_size = var.root_volume_size
   }
 
+  # user_data only runs on first boot, so a changed script must recreate the instance.
+  user_data_replace_on_change = true
+
   user_data = <<-EOF
     #!/bin/bash
     set -eux
     apt-get update
-    apt-get install -y docker.io
+    apt-get install -y docker.io docker-compose-v2 unzip amazon-ecr-credential-helper
     systemctl enable --now docker
     usermod -aG docker ubuntu
-    docker --version
+
+    # AWS CLI v2 (Ubuntu 24.04 has no apt package); uname -m -> aarch64 on Graviton.
+    curl -sSL "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o /tmp/awscliv2.zip
+    unzip -q /tmp/awscliv2.zip -d /tmp && /tmp/aws/install && rm -rf /tmp/aws /tmp/awscliv2.zip
+
+    # ECR credential helper: pull/push to this repo via the instance role, no docker login.
+    for home in /root /home/ubuntu; do
+      mkdir -p $home/.docker
+      echo '{"credHelpers":{"${split("/", aws_ecr_repository.app.repository_url)[0]}":"ecr-login"}}' > $home/.docker/config.json
+    done
+    chown -R ubuntu:ubuntu /home/ubuntu/.docker
+
+    docker --version && docker compose version && aws --version
   EOF
 
   tags = { Name = var.project, Project = var.project }
