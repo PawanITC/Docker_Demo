@@ -111,7 +111,7 @@ services:
     restart: unless-stopped
 
   kafka-ui:
-    image: kafbat/kafka-ui:v1.0.0
+    image: kafbat/kafka-ui:v1.5.0
     environment:
       SPRING_CONFIG_ADDITIONAL-LOCATION: /etc/kafkaui/config.yml
       SERVER_FORWARD_HEADERS_STRATEGY: framework   # trust Caddy's X-Forwarded-* (https)

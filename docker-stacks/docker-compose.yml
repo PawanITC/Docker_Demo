@@ -68,7 +68,7 @@ services:
     restart: unless-stopped
 
   kafka-ui:
-    image: kafbat/kafka-ui:v1.0.0
+    image: kafbat/kafka-ui:v1.5.0
     ports:
       - "8085:8080"
     environment:
