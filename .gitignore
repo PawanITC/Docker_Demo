@@ -1,6 +1,8 @@
 # Environment / secrets
 .env
 *.env
+*.pem
+*.ppk
 
 # Python
 __pycache__/
