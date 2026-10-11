@@ -67,7 +67,7 @@ resource "aws_route_table_association" "public" {
   route_table_id = aws_route_table.public.id
 }
 
-# ---- Security group: SSH + app locked to your IP; HTTP/HTTPS public --------
+# ---- Security group: SSH + app locked to your IP; HTTP/HTTPS/Postgres/Kafka public
 resource "aws_security_group" "docker" {
   name        = "${var.project}-sg"
   description = "Docker EC2 lab"
@@ -100,6 +100,22 @@ resource "aws_security_group" "docker" {
     description = "HTTPS (public)"
     from_port   = 443
     to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  # Postgres and Kafka are public for apps on any machine: TLS + password only
+  # (pg_hba.conf / SASL_SSL listener in docker-stacks/public; users = var.app_users).
+  ingress {
+    description = "Postgres (public, TLS + password)"
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    description = "Kafka SASL_SSL (public, TLS + password)"
+    from_port   = 9094
+    to_port     = 9094
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }

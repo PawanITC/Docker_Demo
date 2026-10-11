@@ -1,12 +1,15 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# PUBLIC stack for EC2: pgAdmin + Kafka UI reachable by anyone WITH A LOGIN.
+# PUBLIC stack for EC2: pgAdmin + Kafka UI reachable by anyone WITH A LOGIN,
+# Postgres + Kafka reachable by apps on any machine WITH CREDENTIALS.
 #
-#   Internet ─443─▶ caddy (HTTPS, Let's Encrypt) ─▶ pgadmin / kafka-ui
-#                                                      │          │
-#                                                  postgres     kafka   (internal only)
+#   Internet ─443──▶ caddy (HTTPS, Let's Encrypt) ─▶ pgadmin / kafka-ui
+#   Internet ─5432─▶ postgres  (TLS + password)
+#   Internet ─9094─▶ kafka     (SASL_SSL + SCRAM-SHA-512)
 #
-# Only Caddy publishes ports (80/443). Infra (Elastic IP, Cognito, secrets) comes
-# from aws-docker-lab/01-ec2-docker/public-access.tf.
+# Caddy also gets certs for db.<host> / broker.<host>; tls-certs hands them to
+# Postgres and Kafka. App logins come from APP_USERS (postgres-users /
+# kafka-users). Infra (Elastic IP, Cognito, secrets) comes from
+# aws-docker-lab/01-ec2-docker/public-access.tf.
 #
 # On the EC2 instance:
 #   ./fetch-env.sh                 # writes .env from SSM Parameter Store
@@ -26,24 +29,69 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data       # TLS certificates; keep it to avoid re-issuing
       - caddy-config:/config
-    depends_on:
-      - pgadmin
-      - kafka-ui
     restart: unless-stopped
+
+  # One-off job: copy Caddy's certs for db.<host> / broker.<host> into the `tls`
+  # volume in the formats Postgres and Kafka need. renew-tls.sh re-runs it.
+  tls-certs:
+    image: alpine:3.20
+    entrypoint: ["/bin/sh", "/scripts/tls-certs.sh"]
+    environment:
+      PUBLIC_HOST: ${PUBLIC_HOST}
+      TLS_KEYSTORE_PASSWORD: ${TLS_KEYSTORE_PASSWORD:?run ./fetch-env.sh first}
+    volumes:
+      - caddy-data:/caddy:ro
+      - tls:/tls
+      - ./scripts:/scripts:ro
+    depends_on:
+      - caddy
+    restart: "no"
 
   postgres:
     build: ../postgres-pgadmin/postgres
     image: stack/postgres:16
+    # TLS on; who may log in from where is in postgres/pg_hba.conf.
+    command:
+      - postgres
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/tls/db.crt
+      - -c
+      - ssl_key_file=/tls/db.key
+      - -c
+      - hba_file=/etc/postgresql/pg_hba.conf
+    ports:
+      - "5432:5432"
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run ./fetch-env.sh first}
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      - ./postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - tls:/tls:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d appdb"]
       interval: 10s
       timeout: 5s
       retries: 5
+    depends_on:
+      tls-certs:
+        condition: service_completed_successfully
     restart: unless-stopped
+
+  # One-off job: create/update the app logins from APP_USERS, then exit.
+  postgres-users:
+    image: stack/postgres:16
+    entrypoint: ["/bin/sh", "/scripts/postgres-users.sh"]
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      APP_USERS: ${APP_USERS:?run ./fetch-env.sh first}
+    volumes:
+      - ./scripts:/scripts:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
 
   pgadmin:
     build: ../postgres-pgadmin/pgadmin
@@ -98,17 +146,55 @@ services:
     build: ../kafka
     image: stack/kafka:7.7.1
     hostname: kafka
+    ports:
+      - "9094:9094"
     environment:
       KAFKA_HEAP_OPTS: "-Xms256m -Xmx384m"   # sized for a 2 GB instance
+      # Listeners (replace the image's localhost:9092 one):
+      #   PLAINTEXT kafka:29092         containers only (Kafka UI, kafka-users)
+      #   EXTERNAL  broker.<host>:9094  internet: TLS + SCRAM-SHA-512 login
+      # Keep the name "EXTERNAL": the image's start script expects JKS files
+      # for listener names containing SSL or SASL_.
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:29093,EXTERNAL://0.0.0.0:9094
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,EXTERNAL://broker.${PUBLIC_HOST}:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:SASL_SSL
+      KAFKA_LISTENER_NAME_EXTERNAL_SASL_ENABLED_MECHANISMS: SCRAM-SHA-512
+      KAFKA_LISTENER_NAME_EXTERNAL_SCRAM___SHA___512_SASL_JAAS_CONFIG: org.apache.kafka.common.security.scram.ScramLoginModule required;
+      KAFKA_LISTENER_NAME_EXTERNAL_SSL_KEYSTORE_TYPE: PKCS12
+      KAFKA_LISTENER_NAME_EXTERNAL_SSL_KEYSTORE_LOCATION: /tls/broker.p12
+      KAFKA_LISTENER_NAME_EXTERNAL_SSL_KEYSTORE_PASSWORD: ${TLS_KEYSTORE_PASSWORD}
+      KAFKA_LISTENER_NAME_EXTERNAL_SSL_KEY_PASSWORD: ${TLS_KEYSTORE_PASSWORD}
+      # ACLs: app users get only what kafka-users grants them. The internal
+      # PLAINTEXT / CONTROLLER connections are User:ANONYMOUS (super user).
+      KAFKA_AUTHORIZER_CLASS_NAME: org.apache.kafka.metadata.authorizer.StandardAuthorizer
+      KAFKA_SUPER_USERS: User:ANONYMOUS
     volumes:
       - kafka-data:/var/lib/kafka/data
+      - tls:/tls:ro
     healthcheck:
-      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list"]
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:29092 --list"]
       interval: 15s
       timeout: 10s
       retries: 10
       start_period: 30s
+    depends_on:
+      tls-certs:
+        condition: service_completed_successfully
     restart: unless-stopped
+
+  # One-off job: create/update the app users + ACLs from APP_USERS, then exit.
+  kafka-users:
+    image: stack/kafka:7.7.1
+    entrypoint: ["/bin/bash", "/scripts/kafka-users.sh"]
+    environment:
+      KAFKA_HEAP_OPTS: "-Xmx128m"
+      APP_USERS: ${APP_USERS}
+    volumes:
+      - ./scripts:/scripts:ro
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: "no"
 
   kafka-ui:
     image: kafbat/kafka-ui:v1.5.0
@@ -134,3 +220,4 @@ volumes:
   postgres-data:
   pgadmin-data:
   kafka-data:
+  tls:            # certs for Postgres / Kafka, written by tls-certs

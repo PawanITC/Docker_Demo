@@ -18,6 +18,9 @@ name: Terraform Infra Control
 #                        {"you@mail.com":"kafka-admins","dev@mail.com":"kafka-viewers"}
 #     PGADMIN_USERS    - (optional) JSON map of extra pgAdmin users (stack 01), e.g.
 #                        {"dev@mail.com":"User","lead@mail.com":"Administrator"}
+#     APP_USERS        - (optional) JSON map of apps that connect to Postgres + Kafka
+#                        from anywhere (stack 01), e.g.
+#                        {"orders_svc":"readwrite","reporting":"readonly"}
 
 on:
   workflow_dispatch:
@@ -75,6 +78,7 @@ jobs:
       TF_VAR_pgadmin_email: ${{ vars.PGADMIN_EMAIL || 'admin@pgadmin.org' }}
       TF_VAR_kafka_users: ${{ vars.KAFKA_USERS || '{}' }}
       TF_VAR_pgadmin_users: ${{ vars.PGADMIN_USERS || '{}' }}
+      TF_VAR_app_users: ${{ vars.APP_USERS || '{}' }}
     steps:
       - name: Safety guard for destroy
         if: ${{ github.event.inputs.action == 'destroy' && github.event.inputs.confirm_destroy != github.event.inputs.stack }}

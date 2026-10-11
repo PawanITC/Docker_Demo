@@ -8,3 +8,9 @@ pgadmin.{$PUBLIC_HOST} {
 kafka.{$PUBLIC_HOST} {
 	reverse_proxy kafka-ui:8080
 }
+
+# Not websites: these blocks only make Caddy obtain certificates, which
+# scripts/tls-certs.sh hands to Postgres (5432) and Kafka (9094).
+db.{$PUBLIC_HOST}, broker.{$PUBLIC_HOST} {
+	respond "Not a website: connect with a Postgres (5432) or Kafka (9094) client." 404
+}

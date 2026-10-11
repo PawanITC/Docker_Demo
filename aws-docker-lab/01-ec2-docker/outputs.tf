@@ -54,6 +54,21 @@ output "pgadmin_users_passwords" {
   value       = "aws ssm get-parameter --region ${var.aws_region} --with-decryption --name ${local.ssm_prefix}/PGADMIN_EXTRA_USERS --query Parameter.Value --output text"
 }
 
+output "postgres_jdbc_url" {
+  description = "For apps on any machine (user/password from app_users_passwords)."
+  value       = "jdbc:postgresql://${local.db_host}:5432/appdb?sslmode=verify-full&sslfactory=org.postgresql.ssl.DefaultJavaSSLFactory"
+}
+
+output "kafka_bootstrap_servers" {
+  description = "For apps on any machine: SASL_SSL + SCRAM-SHA-512 (user/password from app_users_passwords)."
+  value       = "${local.broker_host}:9094"
+}
+
+output "app_users_passwords" {
+  description = "Credentials for var.app_users (name:role:password;...), same for Postgres and Kafka."
+  value       = "aws ssm get-parameter --region ${var.aws_region} --with-decryption --name ${local.ssm_prefix}/APP_USERS --query Parameter.Value --output text"
+}
+
 output "public_stack_command" {
   description = "Run ON the instance to start the public stack."
   value       = "cd ~/Docker_Demo/docker-stacks/public && ./fetch-env.sh && docker compose up -d --build"

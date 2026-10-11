@@ -1,7 +1,10 @@
 # =============================================================================
-#  Public access: pgAdmin + Kafka UI for anyone with a login, over HTTPS.
+#  Public access: pgAdmin + Kafka UI for anyone with a login, over HTTPS, and
+#  Postgres + Kafka for Java/Spring Boot apps on any machine.
 # -----------------------------------------------------------------------------
 #  Internet --443--> Caddy (on EC2, Let's Encrypt cert) --> pgAdmin / Kafka UI
+#  Internet --5432--> Postgres  (TLS + password, db.<host>)
+#  Internet --9094--> Kafka     (SASL_SSL / SCRAM-SHA-512, broker.<host>)
 #
 #  - Elastic IP:   fixed public address, so the URLs never change.
 #  - Hostnames:    <service>.<ip-with-dashes>.sslip.io (free wildcard DNS that
@@ -12,7 +15,10 @@
 #                  (kafka-admins = full control, kafka-viewers = read-only).
 #  - Secrets:      written to SSM Parameter Store; the instance reads them via
 #                  its IAM role (docker-stacks/public/fetch-env.sh).
-#  - Ports 80/443 are the ONLY public ports (see the security group in main.tf).
+#  - App users:    var.app_users => one Postgres role + one Kafka user per app,
+#                  same generated password (created by the postgres-users /
+#                  kafka-users containers).
+#  - Public ports: 80/443, 5432, 9094 (see the security group in main.tf).
 #
 #  COST: Elastic IP is billed like any public IPv4 (~$3.6/month, same as now).
 #        Cognito is free up to 10,000 monthly active users.
@@ -28,6 +34,8 @@ locals {
   public_host  = "${replace(aws_eip.docker.public_ip, ".", "-")}.sslip.io"
   pgadmin_url  = "https://pgadmin.${local.public_host}"
   kafka_ui_url = "https://kafka.${local.public_host}"
+  db_host      = "db.${local.public_host}"     # Postgres, TLS cert from Caddy
+  broker_host  = "broker.${local.public_host}" # Kafka EXTERNAL listener
   ssm_prefix   = "/${var.project}/public"
 }
 
@@ -124,6 +132,18 @@ resource "random_password" "pgadmin_user" {
   special  = false
 }
 
+resource "random_password" "app_user" {
+  for_each = var.app_users
+  length   = 32
+  special  = false
+}
+
+# Protects the PKCS12 keystore Kafka reads its TLS cert from.
+resource "random_password" "tls_keystore" {
+  length  = 24
+  special = false
+}
+
 # ---- Runtime config for the containers, read by fetch-env.sh -----------------
 locals {
   public_env = {
@@ -135,7 +155,12 @@ locals {
     PGADMIN_EXTRA_USERS = coalesce(join(";", [
       for email, role in var.pgadmin_users : "${email}:${role}:${random_password.pgadmin_user[email].result}"
     ]), "-")
-    POSTGRES_PASSWORD     = random_password.postgres.result
+    POSTGRES_PASSWORD = random_password.postgres.result
+    # "name:role:password;..." for the postgres-users / kafka-users containers.
+    APP_USERS = coalesce(join(";", [
+      for name, role in var.app_users : "${name}:${role}:${random_password.app_user[name].result}"
+    ]), "-")
+    TLS_KEYSTORE_PASSWORD = random_password.tls_keystore.result
     COGNITO_CLIENT_ID     = aws_cognito_user_pool_client.kafka_ui.id
     COGNITO_CLIENT_SECRET = aws_cognito_user_pool_client.kafka_ui.client_secret
     COGNITO_ISSUER_URI    = "https://cognito-idp.${var.aws_region}.amazonaws.com/${aws_cognito_user_pool.kafka_ui.id}"

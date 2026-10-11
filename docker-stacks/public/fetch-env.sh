@@ -17,4 +17,4 @@ aws ssm get-parameters-by-path --region "$REGION" --path "$PREFIX" --with-decryp
   done > .env
 
 echo "Wrote $(wc -l < .env) settings to $(pwd)/.env"
-grep -E '^PUBLIC_HOST=' .env | sed "s/PUBLIC_HOST='\(.*\)'/pgAdmin:  https:\/\/pgadmin.\1\nKafka UI: https:\/\/kafka.\1/"
+grep -E '^PUBLIC_HOST=' .env | sed "s/PUBLIC_HOST='\(.*\)'/pgAdmin:  https:\/\/pgadmin.\1\nKafka UI: https:\/\/kafka.\1\nPostgres: db.\1:5432 (TLS)\nKafka:    broker.\1:9094 (SASL_SSL)/"

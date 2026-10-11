@@ -56,3 +56,20 @@ variable "pgadmin_users" {
     error_message = "Each pgadmin_users value must be \"Administrator\" or \"User\"."
   }
 }
+
+variable "app_users" {
+  type        = map(string)
+  description = "Java/Spring Boot apps that connect to Postgres (5432) and Kafka (9094) from anywhere: name => readwrite or readonly. One generated password per app, stored in SSM."
+  default     = {}
+
+  validation {
+    condition     = alltrue([for r in values(var.app_users) : contains(["readwrite", "readonly"], r)])
+    error_message = "Each app_users value must be \"readwrite\" or \"readonly\"."
+  }
+  # The name becomes a Postgres role and a Kafka user, so keep it simple.
+  validation {
+    condition = alltrue([for n in keys(var.app_users) :
+    can(regex("^[a-z][a-z0-9_]{2,30}$", n)) && !contains(["postgres", "app_readwrite", "app_readonly"], n)])
+    error_message = "app_users names must match ^[a-z][a-z0-9_]{2,30}$ (lowercase, digits, _) and must not be postgres, app_readwrite or app_readonly."
+  }
+}
