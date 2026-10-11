@@ -1,0 +1,17 @@
+# Points at the "postgres" service. It connects when Grafana runs in the same
+# network as Postgres (the all-in-one compose file); on its own, the data
+# source simply shows as unreachable.
+apiVersion: 1
+
+datasources:
+  - name: PostgreSQL
+    type: postgres
+    url: postgres:5432
+    user: postgres
+    secureJsonData:
+      password: postgres
+    jsonData:
+      database: appdb
+      sslmode: disable
+      postgresVersion: 1600
+    isDefault: true

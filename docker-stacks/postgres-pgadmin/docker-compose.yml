@@ -1,0 +1,35 @@
+# Run:   docker compose up -d --build
+# pgAdmin → http://localhost:5050   (server "Local Postgres", password: postgres)
+services:
+  postgres:
+    build: ./postgres
+    image: stack/postgres:16
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d appdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  pgadmin:
+    build: ./pgadmin
+    image: stack/pgadmin:8
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+# Fixed names → the same data is reused by the all-in-one compose file.
+volumes:
+  postgres-data:
+    name: stack_postgres-data
+  pgadmin-data:
+    name: stack_pgadmin-data

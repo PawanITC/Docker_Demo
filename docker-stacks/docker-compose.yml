@@ -1,0 +1,146 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# ALL-IN-ONE stack. Every service is built from its own folder's Dockerfile.
+#
+#   docker compose up -d --build              # everything
+#   docker compose up -d --build postgres pgadmin grafana   # just a subset
+#   docker compose down                       # stop (volumes are KEPT)
+#   docker compose down -v                    # stop AND delete all data
+#
+# Volume names match the per-folder compose files, so data is shared whether
+# you start a service from here or from its own folder.
+# ─────────────────────────────────────────────────────────────────────────────
+name: stack
+
+services:
+  # ---------- PostgreSQL + pgAdmin ----------
+  postgres:
+    build: ./postgres-pgadmin/postgres
+    image: stack/postgres:16
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d appdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  pgadmin:
+    build: ./postgres-pgadmin/pgadmin
+    image: stack/pgadmin:8
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ---------- Jenkins ----------
+  jenkins:
+    build: ./jenkins
+    image: stack/jenkins:lts
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins-home:/var/jenkins_home
+    restart: unless-stopped
+
+  # ---------- Confluent Kafka (KRaft) + UI ----------
+  kafka:
+    build: ./kafka
+    image: stack/kafka:7.7.1
+    hostname: kafka
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  kafka-ui:
+    image: kafbat/kafka-ui:v1.0.0
+    ports:
+      - "8085:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ---------- Python app ----------
+  python-app:
+    build: ./python-app
+    image: stack/python-app:1.0
+    ports:
+      - "5000:5000"
+    volumes:
+      - python-data:/data
+    restart: unless-stopped
+
+  # ---------- Java app ----------
+  java-app:
+    build: ./java-app
+    image: stack/java-app:1.0
+    ports:
+      - "8081:8080"
+    volumes:
+      - java-data:/data
+    restart: unless-stopped
+
+  # ---------- Grafana ----------
+  grafana:
+    build: ./grafana
+    image: stack/grafana:11.2.0
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ---------- Redis ----------
+  redis:
+    build: ./redis
+    image: stack/redis:7.4
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+    name: stack_postgres-data
+  pgadmin-data:
+    name: stack_pgadmin-data
+  jenkins-home:
+    name: stack_jenkins-home
+  kafka-data:
+    name: stack_kafka-data
+  python-data:
+    name: stack_python-data
+  java-data:
+    name: stack_java-data
+  grafana-data:
+    name: stack_grafana-data
+  redis-data:
+    name: stack_redis-data

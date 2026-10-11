@@ -1,0 +1,20 @@
+# Run:   docker compose up -d --build
+# Test:  docker compose exec redis redis-cli -a redis ping
+services:
+  redis:
+    build: .
+    image: stack/redis:7.4
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  redis-data:
+    name: stack_redis-data

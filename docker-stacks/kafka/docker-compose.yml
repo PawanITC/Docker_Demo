@@ -1,0 +1,40 @@
+# Run:   docker compose up -d --build
+# Broker   → localhost:9092 (from host)  /  kafka:29092 (from containers)
+# Kafka UI → http://localhost:8085
+#
+# Quick test:
+#   docker compose exec kafka kafka-topics --bootstrap-server localhost:9092 --create --topic demo
+#   docker compose exec kafka kafka-console-producer --bootstrap-server localhost:9092 --topic demo
+#   docker compose exec kafka kafka-console-consumer --bootstrap-server localhost:9092 --topic demo --from-beginning
+services:
+  kafka:
+    build: .
+    image: stack/kafka:7.7.1
+    hostname: kafka
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  kafka-ui:
+    image: kafbat/kafka-ui:v1.0.0
+    ports:
+      - "8085:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  kafka-data:
+    name: stack_kafka-data

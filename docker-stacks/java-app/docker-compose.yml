@@ -1,0 +1,15 @@
+# Run:   docker compose up -d --build
+# Open:  http://localhost:8081
+services:
+  java-app:
+    build: .
+    image: stack/java-app:1.0
+    ports:
+      - "8081:8080"
+    volumes:
+      - java-data:/data
+    restart: unless-stopped
+
+volumes:
+  java-data:
+    name: stack_java-data

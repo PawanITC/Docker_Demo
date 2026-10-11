@@ -1,0 +1,2 @@
+# Files copied into Linux images must keep LF line endings (CRLF breaks shell/config parsing).
+* text=auto eol=lf

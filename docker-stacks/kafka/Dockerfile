@@ -1,0 +1,27 @@
+# Confluent Kafka in KRaft mode: a single node acting as broker AND controller,
+# so ZooKeeper is not needed.
+FROM confluentinc/cp-kafka:7.7.1
+
+# Listeners:
+#   PLAINTEXT      kafka:29092     → other containers on the Docker network
+#   PLAINTEXT_HOST localhost:9092  → clients on your host machine
+#   CONTROLLER     kafka:29093     → KRaft controller quorum (internal)
+ENV KAFKA_NODE_ID=1 \
+    KAFKA_PROCESS_ROLES=broker,controller \
+    KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:29093 \
+    KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER \
+    KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:29093,PLAINTEXT_HOST://0.0.0.0:9092 \
+    KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092 \
+    KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT \
+    KAFKA_INTER_BROKER_LISTENER_NAME=PLAINTEXT \
+    KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
+    KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1 \
+    KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1 \
+    KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0 \
+    KAFKA_LOG_DIRS=/var/lib/kafka/data \
+    CLUSTER_ID=MkU3OEVBNTcwNTJENDM2Qk
+
+# Topic partitions / commit logs.
+VOLUME /var/lib/kafka/data
+
+EXPOSE 9092
