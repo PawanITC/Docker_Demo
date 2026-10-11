@@ -21,6 +21,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 6.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.6"
+    }
   }
 }
 
@@ -63,7 +67,7 @@ resource "aws_route_table_association" "public" {
   route_table_id = aws_route_table.public.id
 }
 
-# ---- Security group: SSH + app + http, all locked to your IP -----------------
+# ---- Security group: SSH + app locked to your IP; HTTP/HTTPS public --------
 resource "aws_security_group" "docker" {
   name        = "${var.project}-sg"
   description = "Docker EC2 lab"
@@ -83,12 +87,21 @@ resource "aws_security_group" "docker" {
     protocol    = "tcp"
     cidr_blocks = [var.ssh_cidr]
   }
+  # 80/443 are public: Caddy serves pgAdmin + Kafka UI over HTTPS with logins
+  # (see public-access.tf). 80 is needed for the Let's Encrypt challenge.
   ingress {
-    description = "HTTP"
+    description = "HTTP (public)"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = [var.ssh_cidr]
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    description = "HTTPS (public)"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
   egress {
     from_port   = 0

@@ -28,3 +28,31 @@ variable "root_volume_size" {
   type    = number
   default = 20
 }
+
+variable "pgadmin_email" {
+  type        = string
+  description = "Login email for the initial pgAdmin Administrator (password is generated; see outputs)."
+  default     = "admin@pgadmin.org"
+}
+
+variable "kafka_users" {
+  type        = map(string)
+  description = "Kafka UI users: email => Cognito group (kafka-admins or kafka-viewers). Each gets an invite email."
+  default     = {}
+
+  validation {
+    condition     = alltrue([for g in values(var.kafka_users) : contains(["kafka-admins", "kafka-viewers"], g)])
+    error_message = "Each kafka_users value must be \"kafka-admins\" or \"kafka-viewers\"."
+  }
+}
+
+variable "pgadmin_users" {
+  type        = map(string)
+  description = "Extra pgAdmin users: email => role (Administrator or User). Passwords are generated and stored in SSM."
+  default     = {}
+
+  validation {
+    condition     = alltrue([for r in values(var.pgadmin_users) : contains(["Administrator", "User"], r)])
+    error_message = "Each pgadmin_users value must be \"Administrator\" or \"User\"."
+  }
+}

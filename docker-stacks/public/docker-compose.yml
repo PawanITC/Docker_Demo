@@ -1,0 +1,136 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# PUBLIC stack for EC2: pgAdmin + Kafka UI reachable by anyone WITH A LOGIN.
+#
+#   Internet ─443─▶ caddy (HTTPS, Let's Encrypt) ─▶ pgadmin / kafka-ui
+#                                                      │          │
+#                                                  postgres     kafka   (internal only)
+#
+# Only Caddy publishes ports (80/443). Infra (Elastic IP, Cognito, secrets) comes
+# from aws-docker-lab/01-ec2-docker/public-access.tf.
+#
+# On the EC2 instance:
+#   ./fetch-env.sh                 # writes .env from SSM Parameter Store
+#   docker compose up -d --build
+# ─────────────────────────────────────────────────────────────────────────────
+name: public
+
+services:
+  caddy:
+    image: caddy:2.8-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      PUBLIC_HOST: ${PUBLIC_HOST:?run ./fetch-env.sh first}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data       # TLS certificates; keep it to avoid re-issuing
+      - caddy-config:/config
+    depends_on:
+      - pgadmin
+      - kafka-ui
+    restart: unless-stopped
+
+  postgres:
+    build: ../postgres-pgadmin/postgres
+    image: stack/postgres:16
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run ./fetch-env.sh first}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d appdb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  pgadmin:
+    build: ../postgres-pgadmin/pgadmin
+    image: stack/pgadmin:8
+    environment:
+      # Server mode = real logins (email + password, Administrator/User roles).
+      PGADMIN_CONFIG_SERVER_MODE: "True"
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:?run ./fetch-env.sh first}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:?run ./fetch-env.sh first}
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/misc/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # One-off job: create/update the extra pgAdmin users from PGADMIN_EXTRA_USERS
+  # ("email:Role:password;..."), then exit. Runs on every `docker compose up`.
+  pgadmin-users:
+    image: stack/pgadmin:8
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        [ "$$PGADMIN_EXTRA_USERS" = "-" ] && { echo "No extra users."; exit 0; }
+        cd /pgadmin4
+        echo "$$PGADMIN_EXTRA_USERS" | tr ';' '\n' | while IFS=: read -r email role password; do
+          [ "$$role" = "Administrator" ] && flag=--admin || flag=--nonadmin
+          if /venv/bin/python setup.py get-users --username "$$email" | grep -q "$$email"; then
+            # update-user defaults to --inactive, so --active is required.
+            /venv/bin/python setup.py update-user "$$email" --password "$$password" $$flag --active >/dev/null && echo "Updated $$email ($$role)"
+          else
+            /venv/bin/python setup.py add-user "$$email" "$$password" $$flag --active >/dev/null && echo "Added $$email ($$role)"
+          fi
+        done
+    environment:
+      PGADMIN_CONFIG_SERVER_MODE: "True"
+      PGADMIN_EXTRA_USERS: ${PGADMIN_EXTRA_USERS:?run ./fetch-env.sh first}
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      pgadmin:
+        condition: service_healthy
+    restart: "no"
+
+  kafka:
+    build: ../kafka
+    image: stack/kafka:7.7.1
+    hostname: kafka
+    environment:
+      KAFKA_HEAP_OPTS: "-Xms256m -Xmx384m"   # sized for a 2 GB instance
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  kafka-ui:
+    image: kafbat/kafka-ui:v1.0.0
+    environment:
+      SPRING_CONFIG_ADDITIONAL-LOCATION: /etc/kafkaui/config.yml
+      SERVER_FORWARD_HEADERS_STRATEGY: framework   # trust Caddy's X-Forwarded-* (https)
+      JAVA_OPTS: "-Xms128m -Xmx256m"
+      PUBLIC_HOST: ${PUBLIC_HOST}
+      COGNITO_CLIENT_ID: ${COGNITO_CLIENT_ID:?run ./fetch-env.sh first}
+      COGNITO_CLIENT_SECRET: ${COGNITO_CLIENT_SECRET:?run ./fetch-env.sh first}
+      COGNITO_ISSUER_URI: ${COGNITO_ISSUER_URI:?run ./fetch-env.sh first}
+      COGNITO_LOGOUT_URL: ${COGNITO_LOGOUT_URL:?run ./fetch-env.sh first}
+    volumes:
+      - ./kafka-ui/config.yml:/etc/kafkaui/config.yml:ro
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  caddy-data:
+  caddy-config:
+  postgres-data:
+  pgadmin-data:
+  kafka-data:

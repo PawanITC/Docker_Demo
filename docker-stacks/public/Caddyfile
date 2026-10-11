@@ -1,0 +1,10 @@
+# Caddy gets and renews HTTPS certificates automatically for these hostnames.
+# PUBLIC_HOST looks like 65-2-137-133.sslip.io, which resolves to 65.2.137.133.
+
+pgadmin.{$PUBLIC_HOST} {
+	reverse_proxy pgadmin:80
+}
+
+kafka.{$PUBLIC_HOST} {
+	reverse_proxy kafka-ui:8080
+}

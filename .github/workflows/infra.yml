@@ -12,6 +12,12 @@ name: Terraform Infra Control
 #     AWS_REGION       - e.g. ap-south-1
 #     SSH_CIDR         - your.ip/32  (SSH + app ingress; NEVER 0.0.0.0/0)
 #     EC2_KEY_NAME     - (optional) existing EC2 key pair; empty => SSM only
+#     EC2_INSTANCE_TYPE - (optional) e.g. t4g.small; the public stack needs >= 2 GB RAM
+#     PGADMIN_EMAIL    - (optional) initial pgAdmin admin login (stack 01)
+#     KAFKA_USERS      - (optional) JSON map of Kafka UI users (stack 01), e.g.
+#                        {"you@mail.com":"kafka-admins","dev@mail.com":"kafka-viewers"}
+#     PGADMIN_USERS    - (optional) JSON map of extra pgAdmin users (stack 01), e.g.
+#                        {"dev@mail.com":"User","lead@mail.com":"Administrator"}
 
 on:
   workflow_dispatch:
@@ -64,6 +70,11 @@ jobs:
       TF_VAR_ssh_cidr: ${{ vars.SSH_CIDR }}
       TF_VAR_ingress_cidr: ${{ vars.SSH_CIDR }}
       TF_VAR_key_name: ${{ vars.EC2_KEY_NAME }}
+      # Optional; the fallbacks match each variable's Terraform default.
+      TF_VAR_instance_type: ${{ vars.EC2_INSTANCE_TYPE || 't4g.micro' }}
+      TF_VAR_pgadmin_email: ${{ vars.PGADMIN_EMAIL || 'admin@pgadmin.org' }}
+      TF_VAR_kafka_users: ${{ vars.KAFKA_USERS || '{}' }}
+      TF_VAR_pgadmin_users: ${{ vars.PGADMIN_USERS || '{}' }}
     steps:
       - name: Safety guard for destroy
         if: ${{ github.event.inputs.action == 'destroy' && github.event.inputs.confirm_destroy != github.event.inputs.stack }}

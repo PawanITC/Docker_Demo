@@ -1,0 +1,68 @@
+# Kafka UI: sign-in with AWS Cognito, permissions by Cognito group.
+# ${...} values come from the container environment (see fetch-env.sh).
+kafka:
+  clusters:
+    - name: local
+      bootstrapServers: kafka:29092
+
+auth:
+  type: OAUTH2
+  oauth2:
+    client:
+      cognito:
+        clientId: ${COGNITO_CLIENT_ID}
+        clientSecret: ${COGNITO_CLIENT_SECRET}
+        scope: openid,email,profile
+        client-name: cognito
+        provider: cognito
+        redirect-uri: https://kafka.${PUBLIC_HOST}/login/oauth2/code/cognito
+        authorization-grant-type: authorization_code
+        issuer-uri: ${COGNITO_ISSUER_URI}
+        jwk-set-uri: ${COGNITO_ISSUER_URI}/.well-known/jwks.json
+        user-name-attribute: email
+        custom-params:
+          type: cognito
+          logoutUrl: ${COGNITO_LOGOUT_URL}
+
+# Users are put into these groups by Terraform (var.kafka_users).
+# To grant one person access without a group, add a subject like:
+#   - provider: oauth_cognito
+#     type: user
+#     value: someone@example.com
+rbac:
+  roles:
+    - name: admins
+      clusters: [local]
+      subjects:
+        - provider: oauth_cognito
+          type: group
+          value: kafka-admins
+      permissions:
+        - resource: applicationconfig
+          actions: all
+        - resource: clusterconfig
+          actions: all
+        - resource: topic
+          value: ".*"
+          actions: all
+        - resource: consumer
+          value: ".*"
+          actions: all
+        - resource: acl
+          actions: all
+
+    - name: viewers
+      clusters: [local]
+      subjects:
+        - provider: oauth_cognito
+          type: group
+          value: kafka-viewers
+      permissions:
+        - resource: clusterconfig
+          actions: [view]
+        - resource: topic
+          value: ".*"
+          actions: [view, messages_read]
+        - resource: consumer
+          value: ".*"
+          actions: [view]
