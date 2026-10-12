@@ -30,7 +30,7 @@ Repo **Settings → Secrets and variables → Actions → Variables**:
 | `PGADMIN_EMAIL` | `you@gmail.com` | Initial pgAdmin Administrator |
 | `KAFKA_USERS` | `{"you@gmail.com":"kafka-admins","dev@gmail.com":"kafka-viewers"}` | Kafka UI users; each gets an invite email with a temporary password |
 | `PGADMIN_USERS` | `{"dev@gmail.com":"User","lead@gmail.com":"Administrator"}` | Extra pgAdmin users; passwords generated into SSM |
-| `APP_USERS` | `{"orders_svc":"readwrite","reporting":"readonly"}` | Apps that connect to Postgres + Kafka from any machine; one generated password per app (same for both) |
+| `APP_USERS` | `{"orders_svc":"readwrite","reporting":"readonly","kafka_test":"readwrite"}` | Apps that connect to Postgres + Kafka from any machine; one generated password per app (same for both) |
 
 Then **Actions → Terraform Infra Control → `01-ec2-docker` → `apply`**.
 The outputs show `pgadmin_url`, `kafka_ui_url`, `postgres_jdbc_url`,
@@ -94,6 +94,9 @@ Quick check from any machine with `psql`:
 ```bash
 psql "host=db.65-2-137-133.sslip.io dbname=appdb user=reporting sslmode=require"
 ```
+
+To check Kafka end to end, run the Python producer/consumer in
+[`../kafka-test/`](../kafka-test/README.md) as the `kafka_test` app.
 
 ## 3. Manage access
 

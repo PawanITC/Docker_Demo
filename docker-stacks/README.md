@@ -7,7 +7,8 @@ Each folder runs **on its own**, or you can run **everything at once** with
 the `docker-compose.yml` in this folder.
 
 To share **pgAdmin and Kafka UI publicly from EC2** (HTTPS, logins, Cognito
-roles), use [`public/`](public/README.md).
+roles), use [`public/`](public/README.md). To check that its Kafka works, run the
+Python producer/consumer in [`kafka-test/`](kafka-test/README.md).
 
 | Folder | Service(s) | URL / Port | Login | Volume |
 |---|---|---|---|---|
