@@ -21,6 +21,8 @@ Python producer/consumer in [`kafka-test/`](kafka-test/README.md).
 | `java-app/` | Java 21 HTTP API | http://localhost:8081 | — | `stack_java-data` |
 | `grafana/` | Grafana OSS | http://localhost:3000 | `admin` / `admin` | `stack_grafana-data` |
 | `redis/` | Redis 7.4 | `localhost:6379` | password `redis` | `stack_redis-data` |
+| `llm/` | Ollama (LLM server, `llama3.2:1b`) | http://localhost:11434 | — | `stack_ollama-data` |
+| | Open WebUI (chat) | http://localhost:3001 | create admin on first visit | `stack_open-webui-data` |
 
 > Credentials are lab defaults baked into the Dockerfiles as `ENV`. Override
 > them with `environment:` in compose for anything beyond local practice.
@@ -40,12 +42,15 @@ docker compose down          # stops; data stays in the volume
 ```bash
 docker compose up -d --build                         # all services
 docker compose up -d --build postgres pgadmin grafana # or pick some
+docker compose --profile llm up -d --build           # everything + the LLM
 docker compose ps
 docker compose down          # keep data
 docker compose down -v       # delete data too
 ```
 
 > Running everything needs roughly **4–6 GB RAM** (Jenkins and Kafka are the heaviest).
+> The LLM is behind the `llm` profile because it downloads a model (~1.3 GB) and
+> needs about 2 GB more RAM. See [`llm/`](llm/README.md).
 > The per-folder and all-in-one files use the **same ports**. Stop one before starting the other.
 
 ## Handy commands

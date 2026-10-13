@@ -3,6 +3,7 @@
 #
 #   docker compose up -d --build              # everything
 #   docker compose up -d --build postgres pgadmin grafana   # just a subset
+#   docker compose --profile llm up -d --build               # also the LLM
 #   docker compose down                       # stop (volumes are KEPT)
 #   docker compose down -v                    # stop AND delete all data
 #
@@ -127,6 +128,39 @@ services:
       retries: 5
     restart: unless-stopped
 
+  # ---------- LLM: Ollama + Open WebUI (opt-in: --profile llm) ----------
+  ollama:
+    build: ./llm
+    image: stack/ollama:0.40.3
+    profiles: [llm]
+    ports:
+      - "11434:11434"
+    environment:
+      OLLAMA_MODELS_TO_PULL: "llama3.2:1b"
+    volumes:
+      - ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:v0.12.0
+    profiles: [llm]
+    ports:
+      - "3001:8080"
+    environment:
+      OLLAMA_BASE_URL: http://ollama:11434
+    volumes:
+      - open-webui-data:/app/backend/data
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   postgres-data:
     name: stack_postgres-data
@@ -144,3 +178,7 @@ volumes:
     name: stack_grafana-data
   redis-data:
     name: stack_redis-data
+  ollama-data:
+    name: stack_ollama-data
+  open-webui-data:
+    name: stack_open-webui-data

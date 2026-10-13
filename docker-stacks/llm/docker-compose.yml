@@ -1,0 +1,68 @@
+# Run:   docker compose up -d --build
+# Logs:  docker compose logs -f ollama          (watch the model download)
+# Chat:  http://localhost:3001                  (create the admin account on first visit)
+# API:   curl localhost:11434/api/generate -d '{"model":"llama3.2:1b","prompt":"Hi"}'
+#
+# On EC2: run the stack there, then tunnel the ports to your laptop (see README.md):
+#   ssh -N -L 3001:localhost:3001 -L 11434:localhost:11434 <instance-id>
+#   open http://localhost:3001
+#
+# Coding models (see README.md for sizes and RAM): qwen2.5-coder:7b (needs ~8 GB RAM),
+# qwen3-coder:30b (best local coder, needs ~24 GB RAM). Set OLLAMA_MODELS_TO_PULL below.
+services:
+  ollama:
+    build: .
+    image: stack/ollama:0.40.3
+    ports:
+      - "11434:11434"
+    environment:
+      # Space-separated. Pick from the list below or https://ollama.com/library.
+      #   General chat:
+      #     qwen2.5:0.5b           ~0.4 GB download, ~1 GB RAM
+      #     llama3.2:1b            ~1.3 GB, ~2 GB RAM   (default)
+      #     llama3.2:3b            ~2 GB,   ~4 GB RAM
+      #     llama3.1:8b            ~4.7 GB, ~8 GB RAM
+      #   Programming / debugging:
+      #     qwen2.5-coder:1.5b     ~1 GB,   ~2-3 GB RAM  (t4g.medium)
+      #     qwen2.5-coder:3b       ~1.9 GB, ~4 GB RAM    (t4g.large)
+      #     qwen2.5-coder:7b       ~4.7 GB, ~8 GB RAM    (t4g.xlarge)
+      #     devstral-small-2:24b   ~15 GB,  ~20 GB RAM   (t4g.2xlarge)
+      #     qwen3-coder:30b        ~19 GB,  ~24 GB RAM   (t4g.2xlarge) best local coder
+      #     qwen3-coder-next       ~52 GB,  ~64 GB RAM   (r7g.2xlarge)
+      OLLAMA_MODELS_TO_PULL: "llama3.2:1b"
+    volumes:
+      - ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    # NVIDIA GPU (needs the NVIDIA Container Toolkit): uncomment to use it.
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:v0.12.0
+    ports:
+      - "3001:8080"
+    environment:
+      OLLAMA_BASE_URL: http://ollama:11434
+    volumes:
+      - open-webui-data:/app/backend/data
+    depends_on:
+      ollama:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  ollama-data:
+    name: stack_ollama-data
+  open-webui-data:
+    name: stack_open-webui-data
